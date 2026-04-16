@@ -10,6 +10,7 @@ import {
   Plus,
   Menu,
   X,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 
 const nav = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/urs", label: "Unidades Regionais", icon: Building2 },
   { to: "/contratos", label: "Contratos", icon: FileText },
   { to: "/locais", label: "Locais & Serviços", icon: MapPin },
   { to: "/estoque", label: "Estoque & Relatórios", icon: Boxes },
