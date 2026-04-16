@@ -125,32 +125,41 @@ function ContratosList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-surface">
-                {filtered.map(c => (
-                  <tr key={c.id} className="hover:bg-muted/30 calm-transition">
-                    <td className="px-4 py-3.5">
-                      <Link to="/contratos/$contractId" params={{ contractId: c.id }} className="font-medium text-primary hover:underline">
-                        {c.numero}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3.5 max-w-xs">
-                      <div className="font-medium text-foreground truncate">{c.titulo}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{c.regiao}</div>
-                    </td>
-                    <td className="px-4 py-3.5 text-muted-foreground">{c.cliente}</td>
-                    <td className="px-4 py-3.5"><StatusBadge status={c.status} /></td>
-                    <td className="px-4 py-3.5 text-muted-foreground text-xs">
-                      {new Date(c.inicio).toLocaleDateString("pt-BR")} → {new Date(c.fim).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-primary rounded-full" style={{ width: `${c.progresso}%` }} />
+                {filtered.map(c => {
+                  const ur = urs.find(u => u.code === c.ur)!;
+                  return (
+                    <tr key={c.id} className="hover:bg-muted/30 calm-transition">
+                      <td className="px-4 py-3.5">
+                        <Link to="/contratos/$contractId" params={{ contractId: c.id }} className="font-medium text-primary hover:underline">
+                          {c.numero}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/60 text-xs font-medium">
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: ur.cor }} />
+                          {c.ur}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 max-w-xs">
+                        <div className="font-medium text-foreground truncate">{c.titulo}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{c.regiao}</div>
+                      </td>
+                      <td className="px-4 py-3.5 text-muted-foreground">{c.cliente}</td>
+                      <td className="px-4 py-3.5"><StatusBadge status={c.status} /></td>
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs">
+                        {new Date(c.inicio).toLocaleDateString("pt-BR")} → {new Date(c.fim).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${c.progresso}%` }} />
+                          </div>
+                          <span className="text-xs font-medium w-8 text-right tabular-nums">{c.progresso}%</span>
                         </div>
-                        <span className="text-xs font-medium w-8 text-right">{c.progresso}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -169,12 +178,15 @@ function ContratosList() {
                   <StatusBadge status={c.status} />
                 </div>
                 <div className="font-medium text-sm">{c.titulo}</div>
-                <div className="text-xs text-muted-foreground mt-1">{c.cliente} · {c.regiao}</div>
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary-soft text-primary">{c.ur}</span>
+                  {c.cliente}
+                </div>
                 <div className="flex items-center gap-2 mt-3">
                   <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
                     <div className="h-full bg-primary rounded-full" style={{ width: `${c.progresso}%` }} />
                   </div>
-                  <span className="text-xs font-medium">{c.progresso}%</span>
+                  <span className="text-xs font-medium tabular-nums">{c.progresso}%</span>
                 </div>
               </Link>
             ))}
