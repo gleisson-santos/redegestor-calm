@@ -3,13 +3,13 @@ import { AppLayout } from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getContract, mesesPorAno, formatMes, Material } from "@/data/mockData";
+import { Contract, getContract, mesesPorAno, formatMes, Material } from "@/data/mockData";
 import { ArrowLeft, Calendar, MapPin, User, Building2, Download, Edit3 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/contratos/$contractId")({
-  loader: ({ params }) => {
+  loader: ({ params }): { contract: Contract } => {
     const contract = getContract(params.contractId);
     if (!contract) throw notFound();
     return { contract };
