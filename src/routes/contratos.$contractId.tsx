@@ -59,6 +59,9 @@ function ContractDetail() {
               <div className="space-y-3 min-w-0">
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-3xl font-bold tracking-tight">{contract.numero}</span>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary-soft text-primary text-xs font-semibold font-mono">
+                    {contract.ur}
+                  </span>
                   <StatusBadge status={contract.status} />
                 </div>
                 <h1 className="text-xl text-foreground/80 font-medium">{contract.titulo}</h1>
