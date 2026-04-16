@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UrsRouteImport } from './routes/urs'
 import { Route as LocaisRouteImport } from './routes/locais'
 import { Route as EstoqueRouteImport } from './routes/estoque'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ContratosIndexRouteImport } from './routes/contratos.index'
 import { Route as ContratosContractIdRouteImport } from './routes/contratos.$contractId'
 
+const UrsRoute = UrsRouteImport.update({
+  id: '/urs',
+  path: '/urs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LocaisRoute = LocaisRouteImport.update({
   id: '/locais',
   path: '/locais',
@@ -45,6 +51,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/estoque': typeof EstoqueRoute
   '/locais': typeof LocaisRoute
+  '/urs': typeof UrsRoute
   '/contratos/$contractId': typeof ContratosContractIdRoute
   '/contratos/': typeof ContratosIndexRoute
 }
@@ -52,6 +59,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/estoque': typeof EstoqueRoute
   '/locais': typeof LocaisRoute
+  '/urs': typeof UrsRoute
   '/contratos/$contractId': typeof ContratosContractIdRoute
   '/contratos': typeof ContratosIndexRoute
 }
@@ -60,6 +68,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/estoque': typeof EstoqueRoute
   '/locais': typeof LocaisRoute
+  '/urs': typeof UrsRoute
   '/contratos/$contractId': typeof ContratosContractIdRoute
   '/contratos/': typeof ContratosIndexRoute
 }
@@ -69,15 +78,23 @@ export interface FileRouteTypes {
     | '/'
     | '/estoque'
     | '/locais'
+    | '/urs'
     | '/contratos/$contractId'
     | '/contratos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/estoque' | '/locais' | '/contratos/$contractId' | '/contratos'
+  to:
+    | '/'
+    | '/estoque'
+    | '/locais'
+    | '/urs'
+    | '/contratos/$contractId'
+    | '/contratos'
   id:
     | '__root__'
     | '/'
     | '/estoque'
     | '/locais'
+    | '/urs'
     | '/contratos/$contractId'
     | '/contratos/'
   fileRoutesById: FileRoutesById
@@ -86,12 +103,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EstoqueRoute: typeof EstoqueRoute
   LocaisRoute: typeof LocaisRoute
+  UrsRoute: typeof UrsRoute
   ContratosContractIdRoute: typeof ContratosContractIdRoute
   ContratosIndexRoute: typeof ContratosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/urs': {
+      id: '/urs'
+      path: '/urs'
+      fullPath: '/urs'
+      preLoaderRoute: typeof UrsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/locais': {
       id: '/locais'
       path: '/locais'
@@ -134,9 +159,19 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EstoqueRoute: EstoqueRoute,
   LocaisRoute: LocaisRoute,
+  UrsRoute: UrsRoute,
   ContratosContractIdRoute: ContratosContractIdRoute,
   ContratosIndexRoute: ContratosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
