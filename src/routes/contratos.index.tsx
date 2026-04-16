@@ -3,8 +3,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { contracts, ContractStatus, statusLabels } from "@/data/mockData";
-import { Search, FileText, Plus, Filter } from "lucide-react";
+import { contracts, ContractStatus, urs, URCode } from "@/data/mockData";
+import { Search, FileText, Plus, Filter, Building2 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 
@@ -21,14 +21,16 @@ export const Route = createFileRoute("/contratos/")({
 function ContratosList() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ContractStatus | "todos">("todos");
+  const [urFilter, setUrFilter] = useState<URCode | "todas">("todas");
 
   const filtered = useMemo(() => {
     return contracts.filter(c => {
       const matchQuery = !query || c.numero.includes(query) || c.titulo.toLowerCase().includes(query.toLowerCase()) || c.cliente.toLowerCase().includes(query.toLowerCase());
       const matchStatus = filter === "todos" || c.status === filter;
-      return matchQuery && matchStatus;
+      const matchUR = urFilter === "todas" || c.ur === urFilter;
+      return matchQuery && matchStatus && matchUR;
     });
-  }, [query, filter]);
+  }, [query, filter, urFilter]);
 
   const filters: ({ value: ContractStatus | "todos"; label: string })[] = [
     { value: "todos", label: "Todos" },
@@ -81,12 +83,40 @@ function ContratosList() {
             </div>
           </div>
 
+          {/* UR pills */}
+          <div className="flex items-center gap-2 flex-wrap pt-1">
+            <Building2 className="h-4 w-4 text-muted-foreground hidden sm:block" />
+            <button
+              onClick={() => setUrFilter("todas")}
+              className={cn(
+                "px-3 h-8 rounded-lg text-xs font-medium calm-transition border",
+                urFilter === "todas" ? "bg-foreground text-background border-foreground" : "bg-surface border-border text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Todas as URs
+            </button>
+            {urs.map(u => (
+              <button
+                key={u.code}
+                onClick={() => setUrFilter(u.code)}
+                className={cn(
+                  "px-3 h-8 rounded-lg text-xs font-medium calm-transition border inline-flex items-center gap-1.5",
+                  urFilter === u.code ? "bg-foreground text-background border-foreground" : "bg-surface border-border text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span className="h-1.5 w-1.5 rounded-full" style={{ background: u.cor }} />
+                {u.code}
+              </button>
+            ))}
+          </div>
+
           {/* Desktop table */}
-          <div className="hidden md:block overflow-hidden rounded-lg border border-border">
+          <div className="hidden md:block overflow-hidden rounded-xl border border-border">
             <table className="w-full text-sm">
               <thead className="bg-muted/40">
                 <tr className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   <th className="px-4 py-3">Número</th>
+                  <th className="px-4 py-3">UR</th>
                   <th className="px-4 py-3">Contrato</th>
                   <th className="px-4 py-3">Cliente</th>
                   <th className="px-4 py-3">Status</th>
@@ -95,32 +125,41 @@ function ContratosList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-surface">
-                {filtered.map(c => (
-                  <tr key={c.id} className="hover:bg-muted/30 calm-transition">
-                    <td className="px-4 py-3.5">
-                      <Link to="/contratos/$contractId" params={{ contractId: c.id }} className="font-medium text-primary hover:underline">
-                        {c.numero}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3.5 max-w-xs">
-                      <div className="font-medium text-foreground truncate">{c.titulo}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{c.regiao}</div>
-                    </td>
-                    <td className="px-4 py-3.5 text-muted-foreground">{c.cliente}</td>
-                    <td className="px-4 py-3.5"><StatusBadge status={c.status} /></td>
-                    <td className="px-4 py-3.5 text-muted-foreground text-xs">
-                      {new Date(c.inicio).toLocaleDateString("pt-BR")} → {new Date(c.fim).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-primary rounded-full" style={{ width: `${c.progresso}%` }} />
+                {filtered.map(c => {
+                  const ur = urs.find(u => u.code === c.ur)!;
+                  return (
+                    <tr key={c.id} className="hover:bg-muted/30 calm-transition">
+                      <td className="px-4 py-3.5">
+                        <Link to="/contratos/$contractId" params={{ contractId: c.id }} className="font-medium text-primary hover:underline">
+                          {c.numero}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/60 text-xs font-medium">
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ background: ur.cor }} />
+                          {c.ur}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 max-w-xs">
+                        <div className="font-medium text-foreground truncate">{c.titulo}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{c.regiao}</div>
+                      </td>
+                      <td className="px-4 py-3.5 text-muted-foreground">{c.cliente}</td>
+                      <td className="px-4 py-3.5"><StatusBadge status={c.status} /></td>
+                      <td className="px-4 py-3.5 text-muted-foreground text-xs">
+                        {new Date(c.inicio).toLocaleDateString("pt-BR")} → {new Date(c.fim).toLocaleDateString("pt-BR")}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: `${c.progresso}%` }} />
+                          </div>
+                          <span className="text-xs font-medium w-8 text-right tabular-nums">{c.progresso}%</span>
                         </div>
-                        <span className="text-xs font-medium w-8 text-right">{c.progresso}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -139,12 +178,15 @@ function ContratosList() {
                   <StatusBadge status={c.status} />
                 </div>
                 <div className="font-medium text-sm">{c.titulo}</div>
-                <div className="text-xs text-muted-foreground mt-1">{c.cliente} · {c.regiao}</div>
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                  <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary-soft text-primary">{c.ur}</span>
+                  {c.cliente}
+                </div>
                 <div className="flex items-center gap-2 mt-3">
                   <div className="h-1.5 flex-1 rounded-full bg-muted overflow-hidden">
                     <div className="h-full bg-primary rounded-full" style={{ width: `${c.progresso}%` }} />
                   </div>
-                  <span className="text-xs font-medium">{c.progresso}%</span>
+                  <span className="text-xs font-medium tabular-nums">{c.progresso}%</span>
                 </div>
               </Link>
             ))}
