@@ -9,38 +9,103 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LocaisRouteImport } from './routes/locais'
+import { Route as EstoqueRouteImport } from './routes/estoque'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ContratosIndexRouteImport } from './routes/contratos.index'
+import { Route as ContratosContractIdRouteImport } from './routes/contratos.$contractId'
 
+const LocaisRoute = LocaisRouteImport.update({
+  id: '/locais',
+  path: '/locais',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EstoqueRoute = EstoqueRouteImport.update({
+  id: '/estoque',
+  path: '/estoque',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContratosIndexRoute = ContratosIndexRouteImport.update({
+  id: '/contratos/',
+  path: '/contratos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContratosContractIdRoute = ContratosContractIdRouteImport.update({
+  id: '/contratos/$contractId',
+  path: '/contratos/$contractId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/estoque': typeof EstoqueRoute
+  '/locais': typeof LocaisRoute
+  '/contratos/$contractId': typeof ContratosContractIdRoute
+  '/contratos/': typeof ContratosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/estoque': typeof EstoqueRoute
+  '/locais': typeof LocaisRoute
+  '/contratos/$contractId': typeof ContratosContractIdRoute
+  '/contratos': typeof ContratosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/estoque': typeof EstoqueRoute
+  '/locais': typeof LocaisRoute
+  '/contratos/$contractId': typeof ContratosContractIdRoute
+  '/contratos/': typeof ContratosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/estoque'
+    | '/locais'
+    | '/contratos/$contractId'
+    | '/contratos/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/estoque' | '/locais' | '/contratos/$contractId' | '/contratos'
+  id:
+    | '__root__'
+    | '/'
+    | '/estoque'
+    | '/locais'
+    | '/contratos/$contractId'
+    | '/contratos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EstoqueRoute: typeof EstoqueRoute
+  LocaisRoute: typeof LocaisRoute
+  ContratosContractIdRoute: typeof ContratosContractIdRoute
+  ContratosIndexRoute: typeof ContratosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/locais': {
+      id: '/locais'
+      path: '/locais'
+      fullPath: '/locais'
+      preLoaderRoute: typeof LocaisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/estoque': {
+      id: '/estoque'
+      path: '/estoque'
+      fullPath: '/estoque'
+      preLoaderRoute: typeof EstoqueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,21 +113,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/contratos/': {
+      id: '/contratos/'
+      path: '/contratos'
+      fullPath: '/contratos/'
+      preLoaderRoute: typeof ContratosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contratos/$contractId': {
+      id: '/contratos/$contractId'
+      path: '/contratos/$contractId'
+      fullPath: '/contratos/$contractId'
+      preLoaderRoute: typeof ContratosContractIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EstoqueRoute: EstoqueRoute,
+  LocaisRoute: LocaisRoute,
+  ContratosContractIdRoute: ContratosContractIdRoute,
+  ContratosIndexRoute: ContratosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
