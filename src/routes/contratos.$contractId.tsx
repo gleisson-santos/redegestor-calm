@@ -34,7 +34,7 @@ export const Route = createFileRoute("/contratos/$contractId")({
 const anos = ["2026", "2027", "2028"] as const;
 
 function ContractDetail() {
-  const { contract } = Route.useLoaderData();
+  const { contract } = Route.useLoaderData() as { contract: Contract };
   const [ano, setAno] = useState<typeof anos[number]>("2026");
   const meses = mesesPorAno[ano];
 
