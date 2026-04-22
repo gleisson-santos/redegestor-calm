@@ -6,6 +6,7 @@ import {
   HardHat,
   Package,
   FileCheck2,
+  Layers,
   Search,
   Bell,
   Menu,
@@ -20,8 +21,9 @@ const nav = [
   { to: "/urs", label: "Unidades Regionais", icon: Building2 },
   { to: "/obras", label: "Base de Obras", icon: HardHat },
   { to: "/materiais", label: "Gestão de Materiais", icon: Package },
+  { to: "/consolidado", label: "Consolidado", icon: Layers },
   { to: "/alvaras", label: "Alvarás", icon: FileCheck2 },
-];
+] as const;
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
