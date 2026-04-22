@@ -288,17 +288,6 @@ function Th({ children, onClick, active, dir, align }: { children: React.ReactNo
   );
 }
 
-function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-card border border-border rounded-md shadow-card p-4">
-      <div className="mb-3">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="text-[11px] text-muted-foreground">{subtitle}</p>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 function Kpi({ icon: Icon, label, value, sub, tone = "neutral" }: { icon: typeof DollarSign; label: string; value: string; sub: string; tone?: "neutral" | "accent" }) {
   const iconCls = tone === "accent" ? "bg-accent-soft text-accent" : "bg-secondary text-secondary-foreground";
