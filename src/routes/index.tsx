@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/components/StatusBadge";
-import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight } from "lucide-react";
+import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import {
   fetchObras, fetchMateriais,
   totalExtensao, extensaoPorMaterial, topPrioridades, urStats,
@@ -10,6 +10,10 @@ import {
 import { urs, URCode } from "@/data/mockData";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+  PieChart, Pie, Cell,
+} from "recharts";
 
 export const Route = createFileRoute("/")({
   head: () => ({
