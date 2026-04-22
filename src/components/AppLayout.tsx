@@ -281,28 +281,12 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
               </Button>
 
-              <div className="flex-1 max-w-sm relative hidden sm:block">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input
-                  placeholder="Buscar obra, logradouro, material…"
-                  className="w-full h-9 pl-9 pr-3 rounded-md bg-muted border border-transparent focus:bg-surface focus:border-input focus:outline-none focus:ring-2 focus:ring-ring/30 text-[13px] transition-colors"
-                />
-              </div>
-
-              <div className="flex-1 sm:hidden" />
+              <div className="flex-1" />
 
               <Button variant="ghost" size="icon" className="relative" aria-label="Notificações">
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
               </Button>
-
-              <Link to="/obras">
-                <Button size="sm" className="gap-1.5 bg-accent hover:bg-accent/90 text-accent-foreground">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Nova obra</span>
-                  <span className="sm:hidden">Nova</span>
-                </Button>
-              </Link>
             </div>
           </header>
 
