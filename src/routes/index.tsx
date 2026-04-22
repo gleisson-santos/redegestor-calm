@@ -301,7 +301,7 @@ function Dashboard() {
                           </div>
                           <div className="text-[11px] text-muted-foreground">{u.cidade}</div>
                         </td>
-                        <td className="px-2 py-2.5 text-muted-foreground">{u.gerente}</td>
+                        <td className="px-2 py-2.5 text-muted-foreground">Antonio Fernando</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono">{s.obras}</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono font-semibold">{Math.round(s.extensaoM).toLocaleString("pt-BR")} m</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono">
