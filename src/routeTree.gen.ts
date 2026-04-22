@@ -12,9 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UrsRouteImport } from './routes/urs'
 import { Route as ObrasRouteImport } from './routes/obras'
 import { Route as MateriaisRouteImport } from './routes/materiais'
+import { Route as EncargosRouteImport } from './routes/encargos'
 import { Route as ConsolidadoRouteImport } from './routes/consolidado'
 import { Route as AlvarasRouteImport } from './routes/alvaras'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EncargosMedicoesRouteImport } from './routes/encargos.medicoes'
+import { Route as EncargosLancamentosRouteImport } from './routes/encargos.lancamentos'
 
 const UrsRoute = UrsRouteImport.update({
   id: '/urs',
@@ -29,6 +32,11 @@ const ObrasRoute = ObrasRouteImport.update({
 const MateriaisRoute = MateriaisRouteImport.update({
   id: '/materiais',
   path: '/materiais',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EncargosRoute = EncargosRouteImport.update({
+  id: '/encargos',
+  path: '/encargos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConsolidadoRoute = ConsolidadoRouteImport.update({
@@ -46,31 +54,50 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EncargosMedicoesRoute = EncargosMedicoesRouteImport.update({
+  id: '/medicoes',
+  path: '/medicoes',
+  getParentRoute: () => EncargosRoute,
+} as any)
+const EncargosLancamentosRoute = EncargosLancamentosRouteImport.update({
+  id: '/lancamentos',
+  path: '/lancamentos',
+  getParentRoute: () => EncargosRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
+  '/encargos': typeof EncargosRouteWithChildren
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/encargos/lancamentos': typeof EncargosLancamentosRoute
+  '/encargos/medicoes': typeof EncargosMedicoesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
+  '/encargos': typeof EncargosRouteWithChildren
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/encargos/lancamentos': typeof EncargosLancamentosRoute
+  '/encargos/medicoes': typeof EncargosMedicoesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
+  '/encargos': typeof EncargosRouteWithChildren
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/encargos/lancamentos': typeof EncargosLancamentosRoute
+  '/encargos/medicoes': typeof EncargosMedicoesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -78,25 +105,41 @@ export interface FileRouteTypes {
     | '/'
     | '/alvaras'
     | '/consolidado'
+    | '/encargos'
     | '/materiais'
     | '/obras'
     | '/urs'
+    | '/encargos/lancamentos'
+    | '/encargos/medicoes'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/alvaras' | '/consolidado' | '/materiais' | '/obras' | '/urs'
+  to:
+    | '/'
+    | '/alvaras'
+    | '/consolidado'
+    | '/encargos'
+    | '/materiais'
+    | '/obras'
+    | '/urs'
+    | '/encargos/lancamentos'
+    | '/encargos/medicoes'
   id:
     | '__root__'
     | '/'
     | '/alvaras'
     | '/consolidado'
+    | '/encargos'
     | '/materiais'
     | '/obras'
     | '/urs'
+    | '/encargos/lancamentos'
+    | '/encargos/medicoes'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlvarasRoute: typeof AlvarasRoute
   ConsolidadoRoute: typeof ConsolidadoRoute
+  EncargosRoute: typeof EncargosRouteWithChildren
   MateriaisRoute: typeof MateriaisRoute
   ObrasRoute: typeof ObrasRoute
   UrsRoute: typeof UrsRoute
@@ -125,6 +168,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MateriaisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/encargos': {
+      id: '/encargos'
+      path: '/encargos'
+      fullPath: '/encargos'
+      preLoaderRoute: typeof EncargosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/consolidado': {
       id: '/consolidado'
       path: '/consolidado'
@@ -146,13 +196,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/encargos/medicoes': {
+      id: '/encargos/medicoes'
+      path: '/medicoes'
+      fullPath: '/encargos/medicoes'
+      preLoaderRoute: typeof EncargosMedicoesRouteImport
+      parentRoute: typeof EncargosRoute
+    }
+    '/encargos/lancamentos': {
+      id: '/encargos/lancamentos'
+      path: '/lancamentos'
+      fullPath: '/encargos/lancamentos'
+      preLoaderRoute: typeof EncargosLancamentosRouteImport
+      parentRoute: typeof EncargosRoute
+    }
   }
 }
+
+interface EncargosRouteChildren {
+  EncargosLancamentosRoute: typeof EncargosLancamentosRoute
+  EncargosMedicoesRoute: typeof EncargosMedicoesRoute
+}
+
+const EncargosRouteChildren: EncargosRouteChildren = {
+  EncargosLancamentosRoute: EncargosLancamentosRoute,
+  EncargosMedicoesRoute: EncargosMedicoesRoute,
+}
+
+const EncargosRouteWithChildren = EncargosRoute._addFileChildren(
+  EncargosRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlvarasRoute: AlvarasRoute,
   ConsolidadoRoute: ConsolidadoRoute,
+  EncargosRoute: EncargosRouteWithChildren,
   MateriaisRoute: MateriaisRoute,
   ObrasRoute: ObrasRoute,
   UrsRoute: UrsRoute,
@@ -160,3 +239,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
