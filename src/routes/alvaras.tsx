@@ -48,6 +48,14 @@ function AlvarasPage() {
       .sort((a: Obra, b: Obra) => a.prioridade - b.prioridade);
   }, [obrasComAlvara, query, urFilter, statusFilter]);
 
+  useEffect(() => { setPage(1); }, [query, urFilter, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+
   return (
     <AppLayout>
       <div className="px-4 lg:px-8 py-6">
