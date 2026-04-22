@@ -55,7 +55,7 @@ function URsPage() {
                 <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
                   <Stat n={s.obras} l="Obras" />
                   <Stat n={Math.round(s.extensaoM).toLocaleString("pt-BR")} l="Metros" mono />
-                  <Stat n={s.criticas} l="Críticas" tone={s.criticas > 0 ? "warning" : "neutral"} />
+                  <Stat n={s.bairros} l="Bairros" />
                 </div>
               </button>
             );
