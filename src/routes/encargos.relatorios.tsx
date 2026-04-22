@@ -158,29 +158,9 @@ function RelatoriosPage() {
     a.click(); URL.revokeObjectURL(url);
   };
 
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    const dt = new Date().toLocaleString("pt-BR");
-    doc.setFontSize(16);
-    doc.text("Relatório de Medição Mensal", 14, 18);
-    doc.setFontSize(10);
-    doc.text(`UR: ${urFilter}   |   Mês: ${mesFilter || "—"}`, 14, 26);
-    doc.text(`Gerado em ${dt}`, 14, 32);
-
-    autoTable(doc, {
-      startY: 38,
-      head: [["UR", "Mês Referência", "Valor Total", "Status"]],
-      body: filtered.map(m => [m.ur, m.mes_referencia, fmtBRL(Number(m.valor_total)), m.status]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [37, 99, 235] },
-      didDrawPage: (data) => {
-        const pageCount = doc.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.text(`${dt}   —   Página ${data.pageNumber} de ${pageCount}`,
-          doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
-      },
-    });
-    doc.save(`relatorio_medicoes_${new Date().toISOString().slice(0, 10)}.pdf`);
+  const exportPDF = async () => {
+    const { exportRelatorioPDF } = await loadPdf();
+    exportRelatorioPDF({ urFilter, mesFilter, rows: filtered });
   };
 
   return (
