@@ -62,12 +62,24 @@ const SIDEBAR_STORAGE_KEY = "redegestor:sidebar-collapsed";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, profile, isAdmin, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isEncargosActive = location.pathname.startsWith("/encargos");
   const isObrasActive = location.pathname === "/obras" || location.pathname.startsWith("/obras/");
   const [encargosOpen, setEncargosOpen] = useState(isEncargosActive);
   const [obrasOpen, setObrasOpen] = useState(isObrasActive);
   const [collapsed, setCollapsed] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast.success("Sessão encerrada");
+    navigate({ to: "/login" });
+  };
+
+  const displayName = profile?.nome || user?.email || "Usuário";
+  const initials = displayName.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase() || "U";
+  const subtitle = isAdmin ? `${profile?.ur ?? ""} · Administrador` : `${profile?.ur ?? ""} · Usuário`;
 
   useEffect(() => {
     try {
