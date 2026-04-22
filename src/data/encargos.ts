@@ -182,3 +182,85 @@ export function currentMesReferencia(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
+
+/* ------------------- Drill-down de Medição ------------------- */
+
+export interface ObraDetalhe {
+  obra_id: string;
+  logradouro: string;
+  bairro: string;
+  ur: string;
+  valor_total: number;
+  itens: {
+    descricao: string;
+    codigo: string;
+    quantidade: number;
+    unidade: string;
+    preco_unitario: number;
+    valor_total: number;
+  }[];
+}
+
+/**
+ * Retorna detalhamento de uma medição (UR + mês): obras contribuintes
+ * e os serviços lançados em cada obra naquele mês.
+ */
+export async function fetchMedicaoDetalhe(ur: string, mes: string): Promise<ObraDetalhe[]> {
+  const [{ data: execs, error: e1 }, { data: itens, error: e2 }, { data: obras, error: e3 }] = await Promise.all([
+    sb.from("execucao_servicos").select("*").eq("mes_referencia", mes).limit(5000),
+    sb.from("caderno_encargos").select("*").limit(1000),
+    sb.from("obras").select("id, logradouro, bairro, ur").eq("ur", ur).limit(2000),
+  ]);
+  if (e1) throw e1;
+  if (e2) throw e2;
+  if (e3) throw e3;
+
+  const itemMap = new Map<string, any>();
+  (itens ?? []).forEach((i: any) => itemMap.set(i.id, i));
+  const obraMap = new Map<string, any>();
+  (obras ?? []).forEach((o: any) => obraMap.set(o.id, o));
+
+  const result = new Map<string, ObraDetalhe>();
+  (execs ?? []).forEach((ex: any) => {
+    const obra = obraMap.get(ex.obra_id);
+    if (!obra) return; // not in this UR
+    const item = itemMap.get(ex.item_encargo_id);
+    if (!item) return;
+    const preco = Number(item.preco_unitario) || 0;
+    const valor = Number(ex.quantidade) * preco;
+    let entry = result.get(obra.id);
+    if (!entry) {
+      entry = { obra_id: obra.id, logradouro: obra.logradouro, bairro: obra.bairro, ur: obra.ur, valor_total: 0, itens: [] };
+      result.set(obra.id, entry);
+    }
+    entry.valor_total += valor;
+    entry.itens.push({
+      descricao: item.descricao,
+      codigo: item.codigo,
+      quantidade: Number(ex.quantidade),
+      unidade: item.unidade,
+      preco_unitario: preco,
+      valor_total: valor,
+    });
+  });
+
+  return Array.from(result.values()).sort((a, b) => b.valor_total - a.valor_total);
+}
+
+/** Conta obras distintas com lançamentos no mês (e UR opcional) */
+export async function fetchObrasAtivasNoMes(mes: string, ur?: string): Promise<number> {
+  const [{ data: execs, error: e1 }, { data: obras, error: e2 }] = await Promise.all([
+    sb.from("execucao_servicos").select("obra_id").eq("mes_referencia", mes).limit(5000),
+    sb.from("obras").select("id, ur").limit(2000),
+  ]);
+  if (e1) throw e1;
+  if (e2) throw e2;
+  const urMap = new Map<string, string>();
+  (obras ?? []).forEach((o: any) => urMap.set(o.id, o.ur));
+  const set = new Set<string>();
+  (execs ?? []).forEach((ex: any) => {
+    if (ur && urMap.get(ex.obra_id) !== ur) return;
+    set.add(ex.obra_id);
+  });
+  return set.size;
+}
