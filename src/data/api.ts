@@ -197,6 +197,7 @@ export function urStats(list: Obra[], code: URCode) {
     aguardandoAlvara: sub.filter(o => o.status === "aguardando_alvara").length,
     concluidas: sub.filter(o => o.status === "concluida").length,
     criticas: sub.filter(o => o.prioridade <= 2 && (o.alvaraStatus === "pendente" || o.alvaraStatus === "vencido")).length,
+    bairros: new Set(sub.map(o => o.bairro).filter(Boolean)).size,
   };
 }
 
