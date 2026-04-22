@@ -6,8 +6,8 @@ import {
   StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge, FinalidadeBadge,
 } from "@/components/StatusBadge";
 import { fetchObras, deleteObra, upsertObra, patchObra, marcarServicoExecutado, type Obra, type ObraInsert } from "@/data/api";
-import { urs, URCode, MaterialTipo } from "@/data/mockData";
-import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays, CheckCircle2 } from "lucide-react";
+import { urs, URCode, MaterialTipo, statusObraLabels, type StatusObra } from "@/data/mockData";
+import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
