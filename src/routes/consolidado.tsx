@@ -38,6 +38,8 @@ function ConsolidadoPage() {
   const [editing, setEditing] = useState<ConsolidadoRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<ConsolidadoRow | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteConsolidado(id),
