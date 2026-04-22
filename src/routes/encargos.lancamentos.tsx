@@ -120,10 +120,12 @@ function LancamentosPage() {
               </div>
             </div>
             <div>
-              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Obra selecionada</Label>
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">
+                Obra selecionada <span className="text-muted-foreground/70 normal-case">(em execução / concluída)</span>
+              </Label>
               <select value={obraId} onChange={e => setObraId(e.target.value)}
                 className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">— escolha —</option>
+                <option value="">— escolha ({obrasElegiveis.length} disponíveis) —</option>
                 {obraOptions.map(o => (
                   <option key={o.id} value={o.id}>{o.ur} · {o.bairro} — {o.logradouro}</option>
                 ))}
