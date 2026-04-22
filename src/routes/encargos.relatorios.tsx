@@ -104,6 +104,34 @@ function RelatoriosPage() {
     });
   }, [medicoes, mesFilter, urFilter]);
 
+  // Comparativo de medições mensais por UR (últimos 12 meses, barras agrupadas)
+  const comparativoUR = useMemo(() => {
+    const months: { mes: string; label: string }[] = [];
+    const base = mesFilter ? new Date(mesFilter + "-01") : new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      months.push({ mes: key, label: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }) });
+    }
+    const urCodes = urFilter === "TODAS" ? urs.map(u => u.code) : [urFilter];
+    return months.map(m => {
+      const row: Record<string, string | number> = { mes: m.mes, label: m.label };
+      urCodes.forEach(code => {
+        row[code] = medicoes
+          .filter(med => med.mes_referencia === m.mes && med.ur === code)
+          .reduce((s, med) => s + Number(med.valor_total), 0);
+      });
+      return row;
+    });
+  }, [medicoes, mesFilter, urFilter]);
+
+  const UR_COLORS: Record<string, string> = {
+    UMB: "hsl(var(--accent))",
+    UML: "hsl(var(--primary))",
+    UMF: "hsl(var(--warning))",
+  };
+  const urCodesAtivas = urFilter === "TODAS" ? urs.map(u => u.code) : [urFilter];
+
   // Distribuição por UR no mês
   const distribUR = useMemo(() => {
     return urs.map(u => ({
@@ -194,6 +222,44 @@ function RelatoriosPage() {
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
           <Kpi icon={DollarSign} label="Valor total medido no mês" value={fmtBRL(valorTotalMes)} sub={`${urFilter === "TODAS" ? "Todas as URs" : urFilter} · ${mesFilter || "—"}`} tone="accent" />
           <Kpi icon={HardHat} label="Obras ativas no mês" value={String(obrasAtivas)} sub="com lançamentos no período" />
+        </section>
+
+        {/* Comparativo por UR */}
+        <section className="mb-5">
+          <ChartCard
+            title="Comparativo de Medições Mensais por Unidade Regional"
+            subtitle={urFilter === "TODAS" ? "UMB · UML · UMF — últimos 12 meses" : `${urFilter} — últimos 12 meses`}
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={comparativoUR} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  formatter={(v: number, name: string) => [fmtBRL(v), `UR ${name}`]}
+                  labelFormatter={(label) => `Mês: ${label}`}
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                {urCodesAtivas.map(code => (
+                  <Bar
+                    key={code}
+                    dataKey={code}
+                    fill={UR_COLORS[code] ?? "hsl(var(--primary))"}
+                    radius={[3, 3, 0, 0]}
+                    cursor="pointer"
+                    onClick={(data) => {
+                      if (data && typeof data.mes === "string") {
+                        setUrFilter(code as URCode);
+                        setMesFilter(data.mes);
+                        setPage(1);
+                      }
+                    }}
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
         </section>
 
         {/* Gráficos */}
