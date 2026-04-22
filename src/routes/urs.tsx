@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge } from "@/components/StatusBadge";
 import { fetchObras, urStats, obrasByUR, extensaoPorMaterial } from "@/data/api";
 import { urs, URCode } from "@/data/mockData";
-import { Building2, HardHat, Ruler, AlertTriangle, ArrowRight } from "lucide-react";
+import { Building2, HardHat, Ruler, MapPin, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
