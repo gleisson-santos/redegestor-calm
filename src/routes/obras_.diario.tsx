@@ -80,7 +80,7 @@ function DiarioPage() {
 
   const obrasAtivas = useMemo(() => {
     const all = obrasQ.data ?? [];
-    return all.filter(o => o.status === "em_execucao" || o.status === "liberada" || o.status === "planejada");
+    return all.filter(o => o.status === "em_execucao");
   }, [obrasQ.data]);
 
   const visiveis = useMemo(() => {
