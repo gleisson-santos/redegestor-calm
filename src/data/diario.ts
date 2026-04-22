@@ -57,6 +57,11 @@ export async function insertDiario(values: DiarioInsert) {
   if (error) throw error;
 }
 
+export async function updateDiario(id: string, values: Partial<DiarioInsert>) {
+  const { error } = await sb.from("diario_obra").update(values).eq("id", id);
+  if (error) throw error;
+}
+
 export async function deleteDiario(id: string) {
   const { error } = await sb.from("diario_obra").delete().eq("id", id);
   if (error) throw error;
