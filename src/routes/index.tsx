@@ -143,8 +143,7 @@ function Dashboard() {
                     <th className="text-left px-2 py-2 font-medium">Material</th>
                     <th className="text-right px-2 py-2 font-medium">DN</th>
                     <th className="text-right px-2 py-2 font-medium">Extensão</th>
-                    <th className="text-left px-2 py-2 font-medium">Alvará</th>
-                    <th className="text-right px-4 py-2 font-medium">Ação</th>
+                    <th className="text-left px-4 py-2 font-medium">Alvará</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -159,18 +158,7 @@ function Dashboard() {
                       <td className="px-2 py-2.5"><MaterialBadge tipo={o.material} /></td>
                       <td className="px-2 py-2.5 text-right tabular font-mono text-[12px]">{o.dn || "—"}</td>
                       <td className="px-2 py-2.5 text-right tabular font-mono">{o.extensaoM.toLocaleString("pt-BR")} m</td>
-                      <td className="px-2 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
-                      <td className="px-4 py-2.5 text-right">
-                        <button
-                          onClick={() => executarMut.mutate(o.id)}
-                          disabled={executarMut.isPending}
-                          title="Marcar como serviço executado (define término = hoje)"
-                          className="inline-flex items-center gap-1 px-2 h-7 rounded text-[11px] font-medium bg-success-soft text-success border border-success/30 hover:bg-success hover:text-success-foreground transition-colors disabled:opacity-50"
-                        >
-                          <Check className="h-3 w-3" />
-                          Executado
-                        </button>
-                      </td>
+                      <td className="px-4 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -200,11 +188,12 @@ function Dashboard() {
                     </div>
                     <PrioridadeBadge prioridade={o.prioridade} />
                   </div>
-                  <div className="flex items-center justify-between mt-1.5">
-                    <div className="text-[10px] text-muted-foreground font-mono">
-                      {o.dataInicio && <>Início: {new Date(o.dataInicio).toLocaleDateString("pt-BR")}</>}
-                      {o.dataTermino && <> → {new Date(o.dataTermino).toLocaleDateString("pt-BR")}</>}
-                    </div>
+                  <div className="text-[10px] text-muted-foreground mt-1.5 font-mono">
+                    {o.dataInicio && <>Início: {new Date(o.dataInicio).toLocaleDateString("pt-BR")}</>}
+                    {o.dataTermino && <> → {new Date(o.dataTermino).toLocaleDateString("pt-BR")}</>}
+                  </div>
+                </div>
+              ))}
                     <button
                       onClick={() => executarMut.mutate(o.id)}
                       disabled={executarMut.isPending}
