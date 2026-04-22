@@ -16,6 +16,7 @@ import { Route as EncargosRouteImport } from './routes/encargos'
 import { Route as ConsolidadoRouteImport } from './routes/consolidado'
 import { Route as AlvarasRouteImport } from './routes/alvaras'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EncargosIndexRouteImport } from './routes/encargos.index'
 import { Route as EncargosRelatoriosRouteImport } from './routes/encargos.relatorios'
 import { Route as EncargosMedicoesRouteImport } from './routes/encargos.medicoes'
 import { Route as EncargosLancamentosRouteImport } from './routes/encargos.lancamentos'
@@ -55,6 +56,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EncargosIndexRoute = EncargosIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EncargosRoute,
+} as any)
 const EncargosRelatoriosRoute = EncargosRelatoriosRouteImport.update({
   id: '/relatorios',
   path: '/relatorios',
@@ -82,18 +88,19 @@ export interface FileRoutesByFullPath {
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
+  '/encargos/': typeof EncargosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
-  '/encargos': typeof EncargosRouteWithChildren
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
+  '/encargos': typeof EncargosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +114,7 @@ export interface FileRoutesById {
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
+  '/encargos/': typeof EncargosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,18 +129,19 @@ export interface FileRouteTypes {
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
+    | '/encargos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/alvaras'
     | '/consolidado'
-    | '/encargos'
     | '/materiais'
     | '/obras'
     | '/urs'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
+    | '/encargos'
   id:
     | '__root__'
     | '/'
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
+    | '/encargos/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -208,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/encargos/': {
+      id: '/encargos/'
+      path: '/'
+      fullPath: '/encargos/'
+      preLoaderRoute: typeof EncargosIndexRouteImport
+      parentRoute: typeof EncargosRoute
+    }
     '/encargos/relatorios': {
       id: '/encargos/relatorios'
       path: '/relatorios'
@@ -236,12 +253,14 @@ interface EncargosRouteChildren {
   EncargosLancamentosRoute: typeof EncargosLancamentosRoute
   EncargosMedicoesRoute: typeof EncargosMedicoesRoute
   EncargosRelatoriosRoute: typeof EncargosRelatoriosRoute
+  EncargosIndexRoute: typeof EncargosIndexRoute
 }
 
 const EncargosRouteChildren: EncargosRouteChildren = {
   EncargosLancamentosRoute: EncargosLancamentosRoute,
   EncargosMedicoesRoute: EncargosMedicoesRoute,
   EncargosRelatoriosRoute: EncargosRelatoriosRoute,
+  EncargosIndexRoute: EncargosIndexRoute,
 }
 
 const EncargosRouteWithChildren = EncargosRoute._addFileChildren(
