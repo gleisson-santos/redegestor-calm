@@ -30,7 +30,7 @@ import { toast } from "sonner";
 
 type NavTo =
   | "/" | "/urs" | "/obras" | "/obras/diario" | "/materiais"
-  | "/consolidado" | "/alvaras" | "/mapa"
+  | "/consolidado" | "/alvaras" | "/mapa" | "/usuarios"
   | "/encargos" | "/encargos/lancamentos" | "/encargos/medicoes" | "/encargos/relatorios";
 type NavItem = { to: NavTo; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 
