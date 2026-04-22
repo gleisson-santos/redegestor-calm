@@ -4,9 +4,9 @@ import { AppLayout } from "@/components/AppLayout";
 import {
   StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge, FinalidadeBadge,
 } from "@/components/StatusBadge";
-import { fetchObras, deleteObra, upsertObra, patchObra, type Obra, type ObraInsert } from "@/data/api";
+import { fetchObras, deleteObra, upsertObra, patchObra, marcarServicoExecutado, type Obra, type ObraInsert } from "@/data/api";
 import { urs, URCode, MaterialTipo } from "@/data/mockData";
-import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays } from "lucide-react";
+import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays, CheckCircle2 } from "lucide-react";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,12 @@ function ObrasPage() {
   const delMut = useMutation({
     mutationFn: (id: string) => deleteObra(id),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["obras"] }); toast.success("Obra excluída."); setDeleting(null); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const execMut = useMutation({
+    mutationFn: (id: string) => marcarServicoExecutado(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["obras"] }); toast.success("Obra marcada como executada."); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -167,6 +173,16 @@ function ObrasPage() {
                     <td className="px-2 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
                     <td className="px-2 py-2.5 text-center"><ObsCell obra={o} /></td>
                     <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      {o.status !== "concluida" && (
+                        <button
+                          onClick={() => execMut.mutate(o.id)}
+                          disabled={execMut.isPending}
+                          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-success-soft text-muted-foreground hover:text-success disabled:opacity-50"
+                          title="Marcar serviço como executado (define término = hoje)"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button onClick={() => setEditing(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
