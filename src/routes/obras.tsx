@@ -6,8 +6,8 @@ import {
   StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge, FinalidadeBadge,
 } from "@/components/StatusBadge";
 import { fetchObras, deleteObra, upsertObra, patchObra, marcarServicoExecutado, type Obra, type ObraInsert } from "@/data/api";
-import { urs, URCode, MaterialTipo } from "@/data/mockData";
-import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays, CheckCircle2 } from "lucide-react";
+import { urs, URCode, MaterialTipo, statusObraLabels, type StatusObra } from "@/data/mockData";
+import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,8 @@ function ObrasPage() {
   const [query, setQuery] = useState("");
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [matFilter, setMatFilter] = useState<MaterialTipo | "TODOS">("TODOS");
+  const [statusFilter, setStatusFilter] = useState<StatusObra | "TODOS">("TODOS");
+  const [monthFilter, setMonthFilter] = useState<string | null>(null); // "YYYY-MM"
   const [sort, setSort] = useState<SortKey>("prioridade");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -68,6 +70,11 @@ function ObrasPage() {
       if (q && !`${o.codigo} ${o.logradouro} ${o.bairro}`.toLowerCase().includes(q)) return false;
       if (urFilter !== "TODAS" && o.ur !== urFilter) return false;
       if (matFilter !== "TODOS" && o.material !== matFilter) return false;
+      if (statusFilter !== "TODOS" && o.status !== statusFilter) return false;
+      if (monthFilter) {
+        const d = o.dataTermino ?? o.dataInicio;
+        if (!d || !d.startsWith(monthFilter)) return false;
+      }
       return true;
     });
     r = [...r].sort((a, b) => {
@@ -78,7 +85,7 @@ function ObrasPage() {
       return 0;
     });
     return r;
-  }, [obras, query, urFilter, matFilter, sort]);
+  }, [obras, query, urFilter, matFilter, statusFilter, monthFilter, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -88,7 +95,7 @@ function ObrasPage() {
   );
 
   // Reset para página 1 quando filtros mudam
-  useEffect(() => { setPage(1); }, [query, urFilter, matFilter, sort]);
+  useEffect(() => { setPage(1); }, [query, urFilter, matFilter, statusFilter, monthFilter, sort]);
 
   const exportCSV = () => {
     const headers = ["Prioridade", "UR", "Bairro", "Logradouro", "Finalidade", "DN", "Extensão (m)", "Material", "Alvará Necessário", "Alvará Liberado"];
@@ -141,6 +148,13 @@ function ObrasPage() {
             <option value="PEAD">PEAD</option>
             <option value="FOFO">FOFO</option>
           </Select>
+          <Select label="Status" value={statusFilter} onChange={v => setStatusFilter(v as StatusObra | "TODOS")}>
+            <option value="TODOS">Todos</option>
+            {(Object.keys(statusObraLabels) as StatusObra[]).map(s => (
+              <option key={s} value={s}>{statusObraLabels[s]}</option>
+            ))}
+          </Select>
+          <MonthPicker value={monthFilter} onChange={setMonthFilter} />
           <Select label="Ordenar" value={sort} onChange={v => setSort(v as SortKey)}>
             <option value="prioridade">Prioridade</option>
             <option value="extensaoM">Extensão</option>
@@ -453,4 +467,114 @@ function Select({ label, value, onChange, children }: { label: string; value: st
 
 function labelSort(s: SortKey): string {
   return ({ prioridade: "prioridade", extensaoM: "extensão", dn: "diâmetro", ur: "UR" } as const)[s];
+}
+
+/* ---------- Month picker minimalista ---------- */
+const MESES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MESES_PT_LONG = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+function MonthPicker({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const today = new Date();
+  const [year, setYear] = useState<number>(value ? Number(value.slice(0, 4)) : today.getFullYear());
+
+  const selectedYear = value ? Number(value.slice(0, 4)) : null;
+  const selectedMonth = value ? Number(value.slice(5, 7)) - 1 : null;
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+
+  const label = value
+    ? `${MESES_PT_LONG[selectedMonth!]} ${selectedYear}`
+    : "Qualquer mês";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className={cn(
+          "inline-flex items-center gap-2 h-9 px-2.5 rounded border border-input bg-surface text-[12px] hover:bg-muted/40 transition-colors",
+          value && "border-primary/40 bg-primary/5",
+        )}>
+          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-muted-foreground font-mono uppercase tracking-wider text-[10px]">Mês</span>
+          <span className="text-[13px] text-foreground">{label}</span>
+          {value && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onChange(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onChange(null); } }}
+              className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+              aria-label="Limpar mês"
+            >
+              <XIcon className="h-3 w-3" />
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-3 pointer-events-auto" align="end">
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setYear(y => y - 1)}
+            className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
+            aria-label="Ano anterior"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <div className="text-sm font-semibold tracking-tight tabular">{year}</div>
+          <button
+            onClick={() => setYear(y => y + 1)}
+            className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
+            aria-label="Próximo ano"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {MESES_PT.map((m, i) => {
+            const isSelected = selectedYear === year && selectedMonth === i;
+            const isCurrent = currentYear === year && currentMonth === i;
+            return (
+              <button
+                key={m}
+                onClick={() => {
+                  const mm = String(i + 1).padStart(2, "0");
+                  onChange(`${year}-${mm}`);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "h-9 rounded text-[12px] font-medium uppercase tracking-wider transition-colors",
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : isCurrent
+                      ? "border border-primary/40 text-foreground hover:bg-muted"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {m}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+          <button
+            onClick={() => {
+              const mm = String(currentMonth + 1).padStart(2, "0");
+              onChange(`${currentYear}-${mm}`);
+              setYear(currentYear);
+              setOpen(false);
+            }}
+            className="text-[11px] uppercase tracking-wider font-mono text-muted-foreground hover:text-foreground"
+          >
+            Mês atual
+          </button>
+          <button
+            onClick={() => { onChange(null); setOpen(false); }}
+            className="text-[11px] uppercase tracking-wider font-mono text-muted-foreground hover:text-destructive"
+          >
+            Limpar
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
 }
