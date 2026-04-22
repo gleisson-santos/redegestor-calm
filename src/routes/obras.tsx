@@ -43,6 +43,8 @@ function ObrasPage() {
   const [query, setQuery] = useState("");
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [matFilter, setMatFilter] = useState<MaterialTipo | "TODOS">("TODOS");
+  const [statusFilter, setStatusFilter] = useState<StatusObra | "TODOS">("TODOS");
+  const [monthFilter, setMonthFilter] = useState<string | null>(null); // "YYYY-MM"
   const [sort, setSort] = useState<SortKey>("prioridade");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
