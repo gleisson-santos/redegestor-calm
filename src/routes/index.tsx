@@ -66,16 +66,22 @@ function Dashboard() {
   const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
 
 
-  // Dados para gráficos (extensão x material x alvará)
-  const chartMaterialAlvara = useMemo(() => {
-    const tipos: ("DEFOFO" | "PEAD" | "FOFO" | "OUTRO")[] = ["DEFOFO", "PEAD", "FOFO", "OUTRO"];
-    return tipos.map(tipo => {
-      const sub = filtered.filter(o => o.material === tipo);
-      const liberado = sub.filter(o => o.alvaraStatus === "liberado" || o.alvaraStatus === "nao_aplicavel").reduce((s, o) => s + o.extensaoM, 0);
-      const pendente = sub.filter(o => o.alvaraStatus === "pendente" || o.alvaraStatus === "vencido").reduce((s, o) => s + o.extensaoM, 0);
-      return { material: tipo, Liberado: Math.round(liberado), Pendente: Math.round(pendente) };
-    }).filter(d => d.Liberado + d.Pendente > 0);
-  }, [filtered]);
+  // Quantidade de obras por UR (UMB · UML · UMF) — série por status
+  const obrasPorURChart = useMemo(() => {
+    const codes: URCode[] = ["UMB", "UML", "UMF"];
+    return codes.map(code => {
+      const sub = obras.filter(o => o.ur === code);
+      return {
+        ur: code,
+        Total: sub.length,
+        EmExecucao: sub.filter(o => o.status === "em_execucao").length,
+        Concluidas: sub.filter(o => o.status === "concluida").length,
+      };
+    });
+  }, [obras]);
+
+  const totalObrasGeral = obrasPorURChart.reduce((s, d) => s + d.Total, 0);
+  const urLider = obrasPorURChart.reduce((a, b) => (b.Total > a.Total ? b : a), obrasPorURChart[0] ?? { ur: "—", Total: 0, EmExecucao: 0, Concluidas: 0 });
 
   const chartStatus = useMemo(() => {
     const buckets: Record<string, { name: string; value: number; color: string }> = {
