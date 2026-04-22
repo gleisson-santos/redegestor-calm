@@ -13,6 +13,7 @@ import { Route as UrsRouteImport } from './routes/urs'
 import { Route as ObrasRouteImport } from './routes/obras'
 import { Route as MateriaisRouteImport } from './routes/materiais'
 import { Route as MapaRouteImport } from './routes/mapa'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as EncargosRouteImport } from './routes/encargos'
 import { Route as ConsolidadoRouteImport } from './routes/consolidado'
 import { Route as AlvarasRouteImport } from './routes/alvaras'
@@ -41,6 +42,11 @@ const MateriaisRoute = MateriaisRouteImport.update({
 const MapaRoute = MapaRouteImport.update({
   id: '/mapa',
   path: '/mapa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EncargosRoute = EncargosRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
   '/encargos': typeof EncargosRouteWithChildren
+  '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
+  '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
   '/encargos': typeof EncargosRouteWithChildren
+  '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
@@ -141,6 +150,7 @@ export interface FileRouteTypes {
     | '/alvaras'
     | '/consolidado'
     | '/encargos'
+    | '/login'
     | '/mapa'
     | '/materiais'
     | '/obras'
@@ -155,6 +165,7 @@ export interface FileRouteTypes {
     | '/'
     | '/alvaras'
     | '/consolidado'
+    | '/login'
     | '/mapa'
     | '/materiais'
     | '/obras'
@@ -170,6 +181,7 @@ export interface FileRouteTypes {
     | '/alvaras'
     | '/consolidado'
     | '/encargos'
+    | '/login'
     | '/mapa'
     | '/materiais'
     | '/obras'
@@ -186,6 +198,7 @@ export interface RootRouteChildren {
   AlvarasRoute: typeof AlvarasRoute
   ConsolidadoRoute: typeof ConsolidadoRoute
   EncargosRoute: typeof EncargosRouteWithChildren
+  LoginRoute: typeof LoginRoute
   MapaRoute: typeof MapaRoute
   MateriaisRoute: typeof MateriaisRoute
   ObrasRoute: typeof ObrasRoute
@@ -221,6 +234,13 @@ declare module '@tanstack/react-router' {
       path: '/mapa'
       fullPath: '/mapa'
       preLoaderRoute: typeof MapaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/encargos': {
@@ -312,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   AlvarasRoute: AlvarasRoute,
   ConsolidadoRoute: ConsolidadoRoute,
   EncargosRoute: EncargosRouteWithChildren,
+  LoginRoute: LoginRoute,
   MapaRoute: MapaRoute,
   MateriaisRoute: MateriaisRoute,
   ObrasRoute: ObrasRoute,
