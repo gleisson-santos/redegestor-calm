@@ -11,28 +11,40 @@ import {
   ClipboardList,
   Calculator,
   BarChart3,
-  Search,
   Bell,
   Menu,
   X,
-  Plus,
   ChevronDown,
   PanelLeftClose,
   PanelLeftOpen,
+  MapPin,
+  ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-type NavTo = "/" | "/urs" | "/obras" | "/materiais" | "/consolidado" | "/alvaras" | "/encargos" | "/encargos/lancamentos" | "/encargos/medicoes" | "/encargos/relatorios";
+type NavTo =
+  | "/" | "/urs" | "/obras" | "/obras/diario" | "/materiais"
+  | "/consolidado" | "/alvaras" | "/mapa"
+  | "/encargos" | "/encargos/lancamentos" | "/encargos/medicoes" | "/encargos/relatorios";
 type NavItem = { to: NavTo; label: string; icon: typeof LayoutDashboard; exact?: boolean };
-const nav: NavItem[] = [
+
+const navTop: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/urs", label: "Unidades Regionais", icon: Building2 },
-  { to: "/obras", label: "Base de Obras", icon: HardHat },
+];
+
+const obrasGroup: { to: NavTo; label: string; icon: typeof LayoutDashboard }[] = [
+  { to: "/obras", label: "Carteira de Obras", icon: ListChecks },
+  { to: "/obras/diario", label: "Diário de Obra", icon: BookOpen },
+];
+
+const navMid: NavItem[] = [
   { to: "/materiais", label: "Gestão de Materiais", icon: Package },
   { to: "/consolidado", label: "Consolidado", icon: Layers },
   { to: "/alvaras", label: "Alvarás", icon: FileCheck2 },
+  { to: "/mapa", label: "Mapa de Calor", icon: MapPin },
 ];
 
 const encargosGroup: { to: NavTo; label: string; icon: typeof LayoutDashboard }[] = [
@@ -48,10 +60,11 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isEncargosActive = location.pathname.startsWith("/encargos");
+  const isObrasActive = location.pathname === "/obras" || location.pathname.startsWith("/obras/");
   const [encargosOpen, setEncargosOpen] = useState(isEncargosActive);
+  const [obrasOpen, setObrasOpen] = useState(isObrasActive);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Restore persisted preference
   useEffect(() => {
     try {
       const v = localStorage.getItem(SIDEBAR_STORAGE_KEY);
@@ -69,6 +82,32 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? location.pathname === to : location.pathname === to || location.pathname.startsWith(to + "/");
+
+  const renderNavItem = (item: NavItem) => {
+    const active = isActive(item.to, item.exact);
+    const link = (
+      <Link
+        key={item.to}
+        to={item.to}
+        className={cn(
+          "flex items-center rounded-md text-[13px] transition-colors",
+          collapsed ? "justify-center h-9 w-full" : "gap-2.5 px-2.5 py-2",
+          active
+            ? "bg-sidebar-accent text-white font-medium"
+            : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white",
+        )}
+      >
+        <item.icon className={cn("h-[16px] w-[16px] shrink-0", active ? "text-accent" : "text-sidebar-foreground/70")} />
+        {!collapsed && <span className="truncate">{item.label}</span>}
+      </Link>
+    );
+    return collapsed ? (
+      <Tooltip key={item.to}>
+        <TooltipTrigger asChild>{link}</TooltipTrigger>
+        <TooltipContent side="right">{item.label}</TooltipContent>
+      </Tooltip>
+    ) : link;
+  };
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -96,37 +135,72 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </Link>
           </div>
 
-          <nav className={cn("flex-1 py-5 space-y-0.5", collapsed ? "px-2" : "px-2.5")}>
+          <nav className={cn("flex-1 py-5 space-y-0.5 overflow-y-auto", collapsed ? "px-2" : "px-2.5")}>
             {!collapsed && (
               <div className="px-2.5 mb-2 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50">
                 Operação
               </div>
             )}
-            {nav.map((item) => {
-              const active = isActive(item.to, item.exact);
-              const link = (
-                <Link
-                  key={item.to}
-                  to={item.to}
+            {navTop.map(renderNavItem)}
+
+            {/* Grupo: Base de Obras */}
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    to="/obras"
+                    className={cn(
+                      "flex items-center justify-center h-9 w-full rounded-md text-[13px] transition-colors",
+                      isObrasActive
+                        ? "bg-sidebar-accent text-white font-medium"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white",
+                    )}
+                  >
+                    <HardHat className={cn("h-[16px] w-[16px]", isObrasActive ? "text-accent" : "text-sidebar-foreground/70")} />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right">Base de Obras</TooltipContent>
+              </Tooltip>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setObrasOpen(o => !o)}
                   className={cn(
-                    "flex items-center rounded-md text-[13px] transition-colors",
-                    collapsed ? "justify-center h-9 w-full" : "gap-2.5 px-2.5 py-2",
-                    active
+                    "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[13px] transition-colors",
+                    isObrasActive
                       ? "bg-sidebar-accent text-white font-medium"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white",
                   )}
                 >
-                  <item.icon className={cn("h-[16px] w-[16px] shrink-0", active ? "text-accent" : "text-sidebar-foreground/70")} />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </Link>
-              );
-              return collapsed ? (
-                <Tooltip key={item.to}>
-                  <TooltipTrigger asChild>{link}</TooltipTrigger>
-                  <TooltipContent side="right">{item.label}</TooltipContent>
-                </Tooltip>
-              ) : link;
-            })}
+                  <HardHat className={cn("h-[16px] w-[16px]", isObrasActive ? "text-accent" : "text-sidebar-foreground/70")} />
+                  <span className="flex-1 text-left">Base de Obras</span>
+                  <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", obrasOpen && "rotate-180")} />
+                </button>
+                {obrasOpen && (
+                  <div className="ml-3 pl-2 border-l border-sidebar-border/60 space-y-0.5 mt-0.5 animate-fade-in">
+                    {obrasGroup.map(sub => {
+                      const active = location.pathname === sub.to;
+                      return (
+                        <Link
+                          key={sub.to}
+                          to={sub.to}
+                          className={cn(
+                            "flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[12.5px] transition-colors",
+                            active ? "bg-sidebar-accent text-white font-medium" : "text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-white",
+                          )}
+                        >
+                          <sub.icon className={cn("h-[14px] w-[14px]", active ? "text-accent" : "text-sidebar-foreground/60")} />
+                          {sub.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+
+            {navMid.map(renderNavItem)}
 
             {/* Grupo: Caderno de Encargos */}
             {collapsed ? (
@@ -222,7 +296,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 </Button>
               </div>
               <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
-                {nav.map((item) => {
+                {[...navTop, ...obrasGroup.map(g => ({ ...g, exact: false } as NavItem)), ...navMid].map((item) => {
                   const active = isActive(item.to, item.exact);
                   return (
                     <Link
