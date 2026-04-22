@@ -9,10 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as UrsRouteImport } from './routes/urs'
 import { Route as ObrasRouteImport } from './routes/obras'
 import { Route as MateriaisRouteImport } from './routes/materiais'
 import { Route as MapaRouteImport } from './routes/mapa'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as EncargosRouteImport } from './routes/encargos'
 import { Route as ConsolidadoRouteImport } from './routes/consolidado'
 import { Route as AlvarasRouteImport } from './routes/alvaras'
@@ -23,6 +25,11 @@ import { Route as EncargosRelatoriosRouteImport } from './routes/encargos.relato
 import { Route as EncargosMedicoesRouteImport } from './routes/encargos.medicoes'
 import { Route as EncargosLancamentosRouteImport } from './routes/encargos.lancamentos'
 
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UrsRoute = UrsRouteImport.update({
   id: '/urs',
   path: '/urs',
@@ -41,6 +48,11 @@ const MateriaisRoute = MateriaisRouteImport.update({
 const MapaRoute = MapaRouteImport.update({
   id: '/mapa',
   path: '/mapa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EncargosRoute = EncargosRouteImport.update({
@@ -94,10 +106,12 @@ export interface FileRoutesByFullPath {
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
   '/encargos': typeof EncargosRouteWithChildren
+  '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/usuarios': typeof UsuariosRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
@@ -108,10 +122,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
+  '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/usuarios': typeof UsuariosRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
@@ -124,10 +140,12 @@ export interface FileRoutesById {
   '/alvaras': typeof AlvarasRoute
   '/consolidado': typeof ConsolidadoRoute
   '/encargos': typeof EncargosRouteWithChildren
+  '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/usuarios': typeof UsuariosRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
@@ -141,10 +159,12 @@ export interface FileRouteTypes {
     | '/alvaras'
     | '/consolidado'
     | '/encargos'
+    | '/login'
     | '/mapa'
     | '/materiais'
     | '/obras'
     | '/urs'
+    | '/usuarios'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
@@ -155,10 +175,12 @@ export interface FileRouteTypes {
     | '/'
     | '/alvaras'
     | '/consolidado'
+    | '/login'
     | '/mapa'
     | '/materiais'
     | '/obras'
     | '/urs'
+    | '/usuarios'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
@@ -170,10 +192,12 @@ export interface FileRouteTypes {
     | '/alvaras'
     | '/consolidado'
     | '/encargos'
+    | '/login'
     | '/mapa'
     | '/materiais'
     | '/obras'
     | '/urs'
+    | '/usuarios'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
@@ -186,15 +210,24 @@ export interface RootRouteChildren {
   AlvarasRoute: typeof AlvarasRoute
   ConsolidadoRoute: typeof ConsolidadoRoute
   EncargosRoute: typeof EncargosRouteWithChildren
+  LoginRoute: typeof LoginRoute
   MapaRoute: typeof MapaRoute
   MateriaisRoute: typeof MateriaisRoute
   ObrasRoute: typeof ObrasRoute
   UrsRoute: typeof UrsRoute
+  UsuariosRoute: typeof UsuariosRoute
   ObrasDiarioRoute: typeof ObrasDiarioRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/urs': {
       id: '/urs'
       path: '/urs'
@@ -221,6 +254,13 @@ declare module '@tanstack/react-router' {
       path: '/mapa'
       fullPath: '/mapa'
       preLoaderRoute: typeof MapaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/encargos': {
@@ -312,10 +352,12 @@ const rootRouteChildren: RootRouteChildren = {
   AlvarasRoute: AlvarasRoute,
   ConsolidadoRoute: ConsolidadoRoute,
   EncargosRoute: EncargosRouteWithChildren,
+  LoginRoute: LoginRoute,
   MapaRoute: MapaRoute,
   MateriaisRoute: MateriaisRoute,
   ObrasRoute: ObrasRoute,
   UrsRoute: UrsRoute,
+  UsuariosRoute: UsuariosRoute,
   ObrasDiarioRoute: ObrasDiarioRoute,
 }
 export const routeTree = rootRouteImport

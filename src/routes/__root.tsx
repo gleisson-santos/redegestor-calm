@@ -1,6 +1,9 @@
-import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts, useLocation, useNavigate } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -65,8 +68,42 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster />
+      <AuthProvider>
+        <AuthGate>
+          <Outlet />
+        </AuthGate>
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
+}
+
+/** Redireciona para /login se não houver sessão, exceto na própria rota /login. */
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { session, loading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isLoginRoute = location.pathname === "/login";
+
+  useEffect(() => {
+    if (!loading && !session && !isLoginRoute) {
+      navigate({ to: "/login" });
+    }
+  }, [loading, session, isLoginRoute, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!session && !isLoginRoute) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  return <>{children}</>;
 }
