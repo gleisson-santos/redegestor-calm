@@ -76,7 +76,7 @@ function AlvarasPage() {
           <section className="bg-destructive-soft border border-destructive/30 rounded-md mb-5">
             <header className="px-5 py-3 border-b border-destructive/20 flex items-center gap-2">
               <AlertOctagon className="h-4 w-4 text-destructive" />
-              <h2 className="text-sm font-semibold text-destructive">Atenção — obras críticas bloqueadas</h2>
+              <h2 className="text-sm font-semibold text-destructive">Obras prioritárias aguardando liberação de alvará</h2>
             </header>
             <ul className="divide-y divide-destructive/15">
               {obrasComAlvara
@@ -88,7 +88,6 @@ function AlvarasPage() {
                     <span className="text-[13px] flex-1 min-w-[180px]"><span className="font-medium">{o.logradouro}</span> · <span className="text-muted-foreground">{o.bairro}</span></span>
                     <MaterialBadge tipo={o.material} />
                     <AlvaraBadge status={o.alvaraStatus} />
-                    <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-destructive text-destructive-foreground">CRÍTICO</span>
                   </li>
                 ))}
             </ul>
