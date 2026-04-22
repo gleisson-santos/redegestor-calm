@@ -104,6 +104,34 @@ function RelatoriosPage() {
     });
   }, [medicoes, mesFilter, urFilter]);
 
+  // Comparativo de medições mensais por UR (últimos 12 meses, barras agrupadas)
+  const comparativoUR = useMemo(() => {
+    const months: { mes: string; label: string }[] = [];
+    const base = mesFilter ? new Date(mesFilter + "-01") : new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      months.push({ mes: key, label: d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }) });
+    }
+    const urCodes = urFilter === "TODAS" ? urs.map(u => u.code) : [urFilter];
+    return months.map(m => {
+      const row: Record<string, string | number> = { mes: m.mes, label: m.label };
+      urCodes.forEach(code => {
+        row[code] = medicoes
+          .filter(med => med.mes_referencia === m.mes && med.ur === code)
+          .reduce((s, med) => s + Number(med.valor_total), 0);
+      });
+      return row;
+    });
+  }, [medicoes, mesFilter, urFilter]);
+
+  const UR_COLORS: Record<string, string> = {
+    UMB: "hsl(var(--accent))",
+    UML: "hsl(var(--primary))",
+    UMF: "hsl(var(--warning))",
+  };
+  const urCodesAtivas = urFilter === "TODAS" ? urs.map(u => u.code) : [urFilter];
+
   // Distribuição por UR no mês
   const distribUR = useMemo(() => {
     return urs.map(u => ({
