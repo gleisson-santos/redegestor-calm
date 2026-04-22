@@ -46,12 +46,17 @@ function LancamentosPage() {
   const obraSelecionada = obras.find(o => o.id === obraId);
   const itemSelecionado = itens.find(i => i.id === itemId);
 
+  const obrasElegiveis = useMemo(
+    () => obras.filter(o => o.status === "em_execucao" || o.status === "concluida"),
+    [obras],
+  );
+
   const obraOptions = useMemo(() => {
     const q = obraSearch.trim().toLowerCase();
-    return obras
+    return obrasElegiveis
       .filter(o => !q || `${o.bairro} ${o.logradouro} ${o.ur} ${o.codigo}`.toLowerCase().includes(q))
       .slice(0, 50);
-  }, [obras, obraSearch]);
+  }, [obrasElegiveis, obraSearch]);
 
   const insertMut = useMutation({
     mutationFn: (v: ExecucaoServicoInsert) => insertExecucao(v),
