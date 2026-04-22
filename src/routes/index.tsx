@@ -194,17 +194,6 @@ function Dashboard() {
                   </div>
                 </div>
               ))}
-                    <button
-                      onClick={() => executarMut.mutate(o.id)}
-                      disabled={executarMut.isPending}
-                      className="inline-flex items-center gap-1 px-2 h-6 rounded text-[10px] font-medium bg-success-soft text-success border border-success/30 hover:bg-success hover:text-success-foreground transition-colors disabled:opacity-50"
-                    >
-                      <Check className="h-3 w-3" />
-                      Concluir
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
           </section>
         </div>
