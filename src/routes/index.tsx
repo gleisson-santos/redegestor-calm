@@ -420,3 +420,43 @@ function ObrasRealizadasCard({ concluidas, totalObras, extensaoConcluida, pctObr
     </div>
   );
 }
+
+function ExtensaoCard({ total, porTipo }: { total: number; porTipo: { tipo: "DEFOFO" | "FOFO" | "PEAD"; metros: number }[] }) {
+  const tipoColor: Record<string, string> = {
+    DEFOFO: "oklch(0.62 0.16 200)",
+    FOFO: "oklch(0.55 0.14 155)",
+    PEAD: "oklch(0.70 0.15 75)",
+  };
+  return (
+    <div className="bg-card border border-border rounded-md p-4 shadow-card">
+      <div className="flex items-start justify-between mb-3">
+        <div className="h-9 w-9 rounded flex items-center justify-center bg-secondary text-secondary-foreground">
+          <Ruler className="h-[18px] w-[18px]" />
+        </div>
+      </div>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Extensão Total</div>
+      <div className="text-2xl font-semibold tabular tracking-tight text-foreground mt-0.5">
+        {Math.round(total).toLocaleString("pt-BR")} <span className="text-base font-normal text-muted-foreground">m</span>
+      </div>
+      <div className="mt-2.5 space-y-1.5">
+        {porTipo.map(t => {
+          const pct = total > 0 ? (t.metros / total) * 100 : 0;
+          return (
+            <div key={t.tipo}>
+              <div className="flex items-center justify-between text-[11px] font-mono">
+                <span className="font-semibold text-foreground">{t.tipo}</span>
+                <span className="tabular text-muted-foreground">
+                  {Math.round(t.metros).toLocaleString("pt-BR")} m
+                  <span className="ml-1 text-[10px]">({pct.toFixed(1)}%)</span>
+                </span>
+              </div>
+              <div className="mt-0.5 h-1 rounded-full bg-muted overflow-hidden">
+                <div className="h-full transition-all" style={{ width: `${Math.min(100, pct)}%`, background: tipoColor[t.tipo] }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
