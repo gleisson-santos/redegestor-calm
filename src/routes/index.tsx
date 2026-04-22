@@ -115,7 +115,7 @@ function Dashboard() {
       .slice(0, 12);
   }, [materiais, urFilter]);
 
-  const isLoading = obrasQ.isLoading || matQ.isLoading;
+  const isLoading = obrasQ.isLoading || matQ.isLoading || diarioQ.isLoading;
 
   const comparativoMes = useMemo(() => {
     const hoje = new Date();
