@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { fetchObras, type Obra } from "@/data/api";
-import { fetchDiarioByObra, insertDiario, deleteDiario, type DiarioInsert } from "@/data/diario";
+import { fetchDiarioByObra, insertDiario, updateDiario, deleteDiario, type DiarioInsert, type DiarioLancamento } from "@/data/diario";
 import { urs, type URCode } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   ClipboardList, Cloud, CloudRain, Sun, Users, Ruler, Layers, AlertTriangle,
-  Plus, Trash2, BookOpen, Filter, ChevronDown, ChevronUp, CheckCircle2,
+  Plus, Trash2, BookOpen, Filter, ChevronDown, ChevronUp, CheckCircle2, Pencil, X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/obras_/diario")({
@@ -77,6 +77,7 @@ function DiarioPage() {
 
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<DiarioLancamento | null>(null);
 
   const obrasAtivas = useMemo(() => {
     const all = obrasQ.data ?? [];
@@ -270,11 +271,13 @@ function DiarioPage() {
                             <DiarioCard
                               key={l.id}
                               lancamento={l}
+                              onEdit={() => setEditing(l)}
                               onDelete={async () => {
                                 if (!confirm("Excluir este lançamento?")) return;
                                 try {
                                   await deleteDiario(l.id);
                                   qc.invalidateQueries({ queryKey: ["diario", selecionada.id] });
+                                  if (editing?.id === l.id) setEditing(null);
                                   toast.success("Lançamento removido.");
                                 } catch (e) {
                                   toast.error((e as Error).message);
@@ -298,7 +301,7 @@ function DiarioPage() {
           {/* COLUNA 3: novo lançamento */}
           <aside className="lg:max-h-[78vh] lg:overflow-y-auto">
             {selecionada ? (
-              <NovoLancamentoForm obra={selecionada} />
+              <NovoLancamentoForm obra={selecionada} editing={editing} onCancelEdit={() => setEditing(null)} />
             ) : (
               <div className="bg-card border border-dashed border-border rounded-md p-6 text-center text-[13px] text-muted-foreground">
                 Selecione uma obra para lançar.
@@ -313,7 +316,7 @@ function DiarioPage() {
 
 /* -------------------- Card de lançamento -------------------- */
 
-function DiarioCard({ lancamento, onDelete }: { lancamento: import("@/data/diario").DiarioLancamento; onDelete: () => void }) {
+function DiarioCard({ lancamento, onDelete, onEdit }: { lancamento: DiarioLancamento; onDelete: () => void; onEdit: () => void }) {
   const ClimaIcon = lancamento.clima === "chuvoso" ? CloudRain
                   : lancamento.clima === "nublado" ? Cloud : Sun;
   return (
@@ -335,13 +338,22 @@ function DiarioCard({ lancamento, onDelete }: { lancamento: import("@/data/diari
             {lancamento.equipe_tamanho}
           </span>
         </div>
-        <button
-          onClick={onDelete}
-          className="text-muted-foreground hover:text-destructive p-1 rounded"
-          title="Excluir lançamento"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onEdit}
+            className="text-muted-foreground hover:text-accent p-1 rounded"
+            title="Editar lançamento"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-muted-foreground hover:text-destructive p-1 rounded"
+            title="Excluir lançamento"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-2 text-[11px]">
@@ -385,10 +397,11 @@ function DiarioCard({ lancamento, onDelete }: { lancamento: import("@/data/diari
 
 /* -------------------- Formulário -------------------- */
 
-function NovoLancamentoForm({ obra }: { obra: Obra }) {
+function NovoLancamentoForm({ obra, editing, onCancelEdit }: { obra: Obra; editing: DiarioLancamento | null; onCancelEdit: () => void }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(true);
-  const [form, setForm] = useState<DiarioInsert>(() => ({
+  const isEdit = !!editing;
+  const initial = (): DiarioInsert => ({
     obra_id: obra.id,
     data_lancamento: new Date().toISOString().slice(0, 10),
     autor: "",
@@ -401,7 +414,8 @@ function NovoLancamentoForm({ obra }: { obra: Obra }) {
     profundidade_media: 1.2,
     descricao: "",
     ocorrencias: "",
-  }));
+  });
+  const [form, setForm] = useState<DiarioInsert>(initial);
 
   // Sincroniza obra selecionada
   useMemo(() => {
@@ -413,16 +427,41 @@ function NovoLancamentoForm({ obra }: { obra: Obra }) {
     }));
   }, [obra.id, obra.material, obra.dn]);
 
+  // Carrega lançamento em edição
+  useMemo(() => {
+    if (editing) {
+      setOpen(true);
+      setForm({
+        obra_id: editing.obra_id,
+        data_lancamento: editing.data_lancamento,
+        autor: editing.autor,
+        clima: editing.clima,
+        equipe_tamanho: editing.equipe_tamanho,
+        atividade: editing.atividade,
+        material_tipo: editing.material_tipo,
+        material_dn: editing.material_dn,
+        metragem_executada: editing.metragem_executada,
+        profundidade_media: editing.profundidade_media,
+        descricao: editing.descricao,
+        ocorrencias: editing.ocorrencias ?? "",
+      });
+    }
+  }, [editing]);
+
   const mut = useMutation({
-    mutationFn: () => insertDiario({
-      ...form,
-      ocorrencias: form.ocorrencias || null,
-    }),
+    mutationFn: () => {
+      const payload = { ...form, ocorrencias: form.ocorrencias || null };
+      return isEdit ? updateDiario(editing!.id, payload) : insertDiario(payload);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["diario", obra.id] });
       qc.invalidateQueries({ queryKey: ["diario"] });
-      toast.success("Lançamento registrado.");
-      setForm(f => ({ ...f, descricao: "", ocorrencias: "", metragem_executada: 0 }));
+      toast.success(isEdit ? "Lançamento atualizado." : "Lançamento registrado.");
+      if (isEdit) {
+        onCancelEdit();
+      } else {
+        setForm(f => ({ ...f, descricao: "", ocorrencias: "", metragem_executada: 0 }));
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -434,10 +473,24 @@ function NovoLancamentoForm({ obra }: { obra: Obra }) {
         className="w-full flex items-center justify-between px-4 py-3 border-b border-border"
       >
         <div className="flex items-center gap-2">
-          <Plus className="h-4 w-4 text-accent" />
-          <span className="text-sm font-semibold text-foreground">Novo lançamento</span>
+          {isEdit ? <Pencil className="h-4 w-4 text-accent" /> : <Plus className="h-4 w-4 text-accent" />}
+          <span className="text-sm font-semibold text-foreground">
+            {isEdit ? "Editar lançamento" : "Novo lançamento"}
+          </span>
         </div>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        <div className="flex items-center gap-1">
+          {isEdit && (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); onCancelEdit(); setForm(initial()); }}
+              className="text-muted-foreground hover:text-foreground p-1 rounded"
+              title="Cancelar edição"
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          )}
+          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </div>
       </button>
 
       {open && (
@@ -574,8 +627,8 @@ function NovoLancamentoForm({ obra }: { obra: Obra }) {
           </div>
 
           <Button type="submit" disabled={mut.isPending} className="w-full gap-2">
-            <Plus className="h-4 w-4" />
-            {mut.isPending ? "Salvando…" : "Salvar lançamento"}
+            {isEdit ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {mut.isPending ? "Salvando…" : isEdit ? "Atualizar lançamento" : "Salvar lançamento"}
           </Button>
         </form>
       )}
