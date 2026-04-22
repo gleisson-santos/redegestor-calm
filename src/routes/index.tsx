@@ -278,7 +278,7 @@ function Dashboard() {
                 <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium">UR</th>
-                    <th className="text-left px-2 py-2 font-medium">Gerente</th>
+                    <th className="text-left px-2 py-2 font-medium">Responsável</th>
                     <th className="text-right px-2 py-2 font-medium">Obras</th>
                     <th className="text-right px-2 py-2 font-medium">Extensão</th>
                     <th className="text-right px-2 py-2 font-medium">Aguard. alvará</th>
@@ -301,7 +301,7 @@ function Dashboard() {
                           </div>
                           <div className="text-[11px] text-muted-foreground">{u.cidade}</div>
                         </td>
-                        <td className="px-2 py-2.5 text-muted-foreground">{u.gerente}</td>
+                        <td className="px-2 py-2.5 text-muted-foreground">Antonio Fernando</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono">{s.obras}</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono font-semibold">{Math.round(s.extensaoM).toLocaleString("pt-BR")} m</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono">
