@@ -18,7 +18,7 @@ import { Route as ConsolidadoRouteImport } from './routes/consolidado'
 import { Route as AlvarasRouteImport } from './routes/alvaras'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EncargosIndexRouteImport } from './routes/encargos.index'
-import { Route as ObrasDiarioRouteImport } from './routes/obras.diario'
+import { Route as ObrasDiarioRouteImport } from './routes/obras_.diario'
 import { Route as EncargosRelatoriosRouteImport } from './routes/encargos.relatorios'
 import { Route as EncargosMedicoesRouteImport } from './routes/encargos.medicoes'
 import { Route as EncargosLancamentosRouteImport } from './routes/encargos.lancamentos'
@@ -69,9 +69,9 @@ const EncargosIndexRoute = EncargosIndexRouteImport.update({
   getParentRoute: () => EncargosRoute,
 } as any)
 const ObrasDiarioRoute = ObrasDiarioRouteImport.update({
-  id: '/diario',
-  path: '/diario',
-  getParentRoute: () => ObrasRoute,
+  id: '/obras_/diario',
+  path: '/obras/diario',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const EncargosRelatoriosRoute = EncargosRelatoriosRouteImport.update({
   id: '/relatorios',
@@ -96,7 +96,7 @@ export interface FileRoutesByFullPath {
   '/encargos': typeof EncargosRouteWithChildren
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
-  '/obras': typeof ObrasRouteWithChildren
+  '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
@@ -110,7 +110,7 @@ export interface FileRoutesByTo {
   '/consolidado': typeof ConsolidadoRoute
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
-  '/obras': typeof ObrasRouteWithChildren
+  '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
@@ -126,12 +126,12 @@ export interface FileRoutesById {
   '/encargos': typeof EncargosRouteWithChildren
   '/mapa': typeof MapaRoute
   '/materiais': typeof MateriaisRoute
-  '/obras': typeof ObrasRouteWithChildren
+  '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
-  '/obras/diario': typeof ObrasDiarioRoute
+  '/obras_/diario': typeof ObrasDiarioRoute
   '/encargos/': typeof EncargosIndexRoute
 }
 export interface FileRouteTypes {
@@ -177,7 +177,7 @@ export interface FileRouteTypes {
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
-    | '/obras/diario'
+    | '/obras_/diario'
     | '/encargos/'
   fileRoutesById: FileRoutesById
 }
@@ -188,8 +188,9 @@ export interface RootRouteChildren {
   EncargosRoute: typeof EncargosRouteWithChildren
   MapaRoute: typeof MapaRoute
   MateriaisRoute: typeof MateriaisRoute
-  ObrasRoute: typeof ObrasRouteWithChildren
+  ObrasRoute: typeof ObrasRoute
   UrsRoute: typeof UrsRoute
+  ObrasDiarioRoute: typeof ObrasDiarioRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -257,12 +258,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EncargosIndexRouteImport
       parentRoute: typeof EncargosRoute
     }
-    '/obras/diario': {
-      id: '/obras/diario'
-      path: '/diario'
+    '/obras_/diario': {
+      id: '/obras_/diario'
+      path: '/obras/diario'
       fullPath: '/obras/diario'
       preLoaderRoute: typeof ObrasDiarioRouteImport
-      parentRoute: typeof ObrasRoute
+      parentRoute: typeof rootRouteImport
     }
     '/encargos/relatorios': {
       id: '/encargos/relatorios'
@@ -306,16 +307,6 @@ const EncargosRouteWithChildren = EncargosRoute._addFileChildren(
   EncargosRouteChildren,
 )
 
-interface ObrasRouteChildren {
-  ObrasDiarioRoute: typeof ObrasDiarioRoute
-}
-
-const ObrasRouteChildren: ObrasRouteChildren = {
-  ObrasDiarioRoute: ObrasDiarioRoute,
-}
-
-const ObrasRouteWithChildren = ObrasRoute._addFileChildren(ObrasRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlvarasRoute: AlvarasRoute,
@@ -323,8 +314,9 @@ const rootRouteChildren: RootRouteChildren = {
   EncargosRoute: EncargosRouteWithChildren,
   MapaRoute: MapaRoute,
   MateriaisRoute: MateriaisRoute,
-  ObrasRoute: ObrasRouteWithChildren,
+  ObrasRoute: ObrasRoute,
   UrsRoute: UrsRoute,
+  ObrasDiarioRoute: ObrasDiarioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
