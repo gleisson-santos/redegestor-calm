@@ -44,6 +44,68 @@ export type Database = {
         }
         Relationships: []
       }
+      diario_obra: {
+        Row: {
+          atividade: string
+          autor: string
+          clima: string
+          created_at: string
+          data_lancamento: string
+          descricao: string
+          equipe_tamanho: number
+          id: string
+          material_dn: number | null
+          material_tipo: string
+          metragem_executada: number
+          obra_id: string
+          ocorrencias: string | null
+          profundidade_media: number
+          updated_at: string
+        }
+        Insert: {
+          atividade?: string
+          autor?: string
+          clima?: string
+          created_at?: string
+          data_lancamento?: string
+          descricao?: string
+          equipe_tamanho?: number
+          id?: string
+          material_dn?: number | null
+          material_tipo?: string
+          metragem_executada?: number
+          obra_id: string
+          ocorrencias?: string | null
+          profundidade_media?: number
+          updated_at?: string
+        }
+        Update: {
+          atividade?: string
+          autor?: string
+          clima?: string
+          created_at?: string
+          data_lancamento?: string
+          descricao?: string
+          equipe_tamanho?: number
+          id?: string
+          material_dn?: number | null
+          material_tipo?: string
+          metragem_executada?: number
+          obra_id?: string
+          ocorrencias?: string | null
+          profundidade_media?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diario_obra_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       execucao_servicos: {
         Row: {
           created_at: string
@@ -196,6 +258,47 @@ export type Database = {
           valor_total?: number
         }
         Relationships: []
+      }
+      obra_historico: {
+        Row: {
+          autor: string
+          campo_alterado: string
+          created_at: string
+          id: string
+          obra_id: string
+          tipo_evento: string
+          valor_anterior: string | null
+          valor_novo: string | null
+        }
+        Insert: {
+          autor?: string
+          campo_alterado: string
+          created_at?: string
+          id?: string
+          obra_id: string
+          tipo_evento?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Update: {
+          autor?: string
+          campo_alterado?: string
+          created_at?: string
+          id?: string
+          obra_id?: string
+          tipo_evento?: string
+          valor_anterior?: string | null
+          valor_novo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obra_historico_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       obras: {
         Row: {
