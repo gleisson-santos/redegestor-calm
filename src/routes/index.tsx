@@ -189,8 +189,8 @@ function Dashboard() {
                     <PrioridadeBadge prioridade={o.prioridade} />
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-1.5 font-mono">
-                    {o.dataInicio && <>Início: {new Date(o.dataInicio).toLocaleDateString("pt-BR")}</>}
-                    {o.dataTermino && <> → {new Date(o.dataTermino).toLocaleDateString("pt-BR")}</>}
+                    {o.dataInicio && <>Início: {fmtISODate(o.dataInicio)}</>}
+                    {o.dataTermino && <> → {fmtISODate(o.dataTermino)}</>}
                   </div>
                 </div>
               ))}
