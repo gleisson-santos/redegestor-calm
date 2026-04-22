@@ -202,74 +202,23 @@ function RelatoriosPage() {
           <Kpi icon={HardHat} label="Obras ativas no mês" value={String(obrasAtivas)} sub="com lançamentos no período" />
         </section>
 
-        {/* Comparativo por UR */}
-        <section className="mb-5">
-          <ChartCard
-            title="Comparativo de Medições Mensais por Unidade Regional"
-            subtitle={urFilter === "TODAS" ? "UMB · UML · UMF — últimos 12 meses" : `${urFilter} — últimos 12 meses`}
-          >
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={comparativoUR} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  formatter={(v: number, name: string) => [fmtBRL(v), `UR ${name}`]}
-                  labelFormatter={(label) => `Mês: ${label}`}
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                {urCodesAtivas.map(code => (
-                  <Bar
-                    key={code}
-                    dataKey={code}
-                    fill={UR_COLORS[code] ?? "hsl(var(--primary))"}
-                    radius={[3, 3, 0, 0]}
-                    cursor="pointer"
-                    onClick={(data) => {
-                      if (data && typeof data.mes === "string") {
-                        setUrFilter(code as URCode);
-                        setMesFilter(data.mes);
-                        setPage(1);
-                      }
-                    }}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </section>
-
-        {/* Gráficos */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
-          <ChartCard title="Evolução dos últimos 12 meses" subtitle={urFilter === "TODAS" ? "Todas as URs" : `Filtrado por ${urFilter}`}>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={evolucao} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => fmtBRL(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }} />
-                <Line type="monotone" dataKey="valor" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard title="Distribuição por UR" subtitle={`No mês ${mesFilter || "—"}`}>
-            {distribUR.length === 0 ? (
-              <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">Sem dados no mês selecionado.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={distribUR} dataKey="valor" nameKey="ur" cx="50%" cy="50%" outerRadius={90} label={(e) => e.ur}>
-                    {distribUR.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => fmtBRL(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </ChartCard>
-        </section>
+        {/* Gráficos (recharts em chunk lazy) */}
+        <Suspense fallback={<div className="h-[300px] bg-card border border-border rounded-md shadow-card flex items-center justify-center text-sm text-muted-foreground mb-5">Carregando gráficos…</div>}>
+          <RelatoriosCharts
+            comparativoUR={comparativoUR}
+            evolucao={evolucao}
+            distribUR={distribUR}
+            urCodesAtivas={urCodesAtivas}
+            urColors={UR_COLORS}
+            mesFilter={mesFilter}
+            urFilter={urFilter}
+            onBarClick={(ur, mes) => {
+              setUrFilter(ur as URCode);
+              setMesFilter(mes);
+              setPage(1);
+            }}
+          />
+        </Suspense>
 
         {/* Tabela */}
         <section className="bg-card border border-border rounded-md shadow-card">
