@@ -14,13 +14,16 @@ interface CreateUserInput {
   role: "admin" | "user";
 }
 
-function assertAdmin(supabase: Awaited<ReturnType<typeof requireSupabaseAuth.server>>["context"]["supabase"], userId: string) {
-  return supabase
-    .rpc("has_role" as never, { _user_id: userId, _role: "admin" } as never)
-    .then(({ data, error }: { data: unknown; error: unknown }) => {
-      if (error) throw error;
-      if (!data) throw new Error("Apenas administradores podem executar esta ação.");
-    });
+async function assertAdmin(userId: string) {
+  // Usa o admin client para checar role (bypass RLS, sem ambiguidade de tipos)
+  const { data, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Apenas administradores podem executar esta ação.");
 }
 
 export const createUser = createServerFn({ method: "POST" })
