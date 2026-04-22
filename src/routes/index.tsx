@@ -278,7 +278,7 @@ function Dashboard() {
                 <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium">UR</th>
-                    <th className="text-left px-2 py-2 font-medium">Gerente</th>
+                    <th className="text-left px-2 py-2 font-medium">Responsável</th>
                     <th className="text-right px-2 py-2 font-medium">Obras</th>
                     <th className="text-right px-2 py-2 font-medium">Extensão</th>
                     <th className="text-right px-2 py-2 font-medium">Aguard. alvará</th>
