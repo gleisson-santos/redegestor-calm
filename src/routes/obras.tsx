@@ -70,6 +70,11 @@ function ObrasPage() {
       if (q && !`${o.codigo} ${o.logradouro} ${o.bairro}`.toLowerCase().includes(q)) return false;
       if (urFilter !== "TODAS" && o.ur !== urFilter) return false;
       if (matFilter !== "TODOS" && o.material !== matFilter) return false;
+      if (statusFilter !== "TODOS" && o.status !== statusFilter) return false;
+      if (monthFilter) {
+        const d = o.dataTermino ?? o.dataInicio;
+        if (!d || !d.startsWith(monthFilter)) return false;
+      }
       return true;
     });
     r = [...r].sort((a, b) => {
@@ -80,7 +85,7 @@ function ObrasPage() {
       return 0;
     });
     return r;
-  }, [obras, query, urFilter, matFilter, sort]);
+  }, [obras, query, urFilter, matFilter, statusFilter, monthFilter, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
