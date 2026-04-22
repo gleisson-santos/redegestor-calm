@@ -95,7 +95,7 @@ function ObrasPage() {
   );
 
   // Reset para página 1 quando filtros mudam
-  useEffect(() => { setPage(1); }, [query, urFilter, matFilter, sort]);
+  useEffect(() => { setPage(1); }, [query, urFilter, matFilter, statusFilter, monthFilter, sort]);
 
   const exportCSV = () => {
     const headers = ["Prioridade", "UR", "Bairro", "Logradouro", "Finalidade", "DN", "Extensão (m)", "Material", "Alvará Necessário", "Alvará Liberado"];
