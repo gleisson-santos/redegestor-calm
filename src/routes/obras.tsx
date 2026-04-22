@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
+import { Pager } from "@/components/Pager";
 import {
   StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge, FinalidadeBadge,
 } from "@/components/StatusBadge";

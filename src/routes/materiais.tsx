@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
+import { Pager } from "@/components/Pager";
 import { MaterialBadge } from "@/components/StatusBadge";
 import { fetchMateriais, deleteMaterial, upsertMaterial, type MaterialRow, type MaterialInsert } from "@/data/api";
 import { urs, URCode } from "@/data/mockData";
 import { Download, Package, AlertTriangle, CheckCircle2, Plus, Pencil, Trash2, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
