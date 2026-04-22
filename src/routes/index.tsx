@@ -549,3 +549,46 @@ function ExtensaoCard({ total, porTipo }: { total: number; porTipo: { tipo: "DEF
     </div>
   );
 }
+
+interface ComparativoData {
+  obrasConcluidas: { atual: number; anterior: number };
+  extensaoExecutada: { atual: number; anterior: number };
+  alvarasLiberados: { atual: number; anterior: number };
+}
+
+function ComparativoMensalCard({ data }: { data: ComparativoData }) {
+  const items = [
+    { label: "Obras concluídas", atual: data.obrasConcluidas.atual, anterior: data.obrasConcluidas.anterior, suffix: "" },
+    { label: "Extensão executada", atual: Math.round(data.extensaoExecutada.atual), anterior: Math.round(data.extensaoExecutada.anterior), suffix: " m" },
+    { label: "Alvarás liberados", atual: data.alvarasLiberados.atual, anterior: data.alvarasLiberados.anterior, suffix: "" },
+  ];
+  return (
+    <section className="mb-6 bg-card border border-border rounded-md shadow-card">
+      <header className="px-5 py-3 border-b border-border">
+        <h2 className="text-sm font-semibold text-foreground">Este mês vs. mês anterior</h2>
+        <p className="text-[12px] text-muted-foreground mt-0.5">Comparativo de indicadores operacionais.</p>
+      </header>
+      <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border">
+        {items.map(it => {
+          const delta = it.atual - it.anterior;
+          const pct = it.anterior > 0 ? (delta / it.anterior) * 100 : (it.atual > 0 ? 100 : 0);
+          const Icon = delta > 0 ? TrendingUp : delta < 0 ? TrendingDown : Minus;
+          const tone = delta > 0 ? "text-emerald-600" : delta < 0 ? "text-red-600" : "text-muted-foreground";
+          return (
+            <div key={it.label} className="px-5 py-4">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">{it.label}</div>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-2xl font-semibold text-foreground tabular">{it.atual.toLocaleString("pt-BR")}{it.suffix}</span>
+                <span className="text-[12px] text-muted-foreground">vs. {it.anterior.toLocaleString("pt-BR")}{it.suffix}</span>
+              </div>
+              <div className={cn("mt-1 inline-flex items-center gap-1 text-[12px] font-medium", tone)}>
+                <Icon className="h-3.5 w-3.5" />
+                {delta > 0 ? "+" : ""}{delta.toLocaleString("pt-BR")}{it.suffix} ({pct.toFixed(1)}%)
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
