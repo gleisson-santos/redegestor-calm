@@ -30,6 +30,8 @@ function MateriaisPage() {
   const { data: materiais = [], isLoading } = useQuery({ queryKey: ["materiais"], queryFn: fetchMateriais });
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [editing, setEditing] = useState<MaterialRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<MaterialRow | null>(null);
@@ -54,6 +56,12 @@ function MateriaisPage() {
   const itensOk = enriched.filter(i => i.saldo >= 0 && Number(i.quantidade_necessaria) > 0).length;
   const totalEstoque = enriched.reduce((s, m) => s + Number(m.quantidade_estoque), 0);
   const totalNecessario = enriched.reduce((s, m) => s + Number(m.quantidade_necessaria), 0);
+
+  const totalPages = Math.max(1, Math.ceil(enriched.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedEnriched = enriched.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [query, urFilter]);
 
   const exportCSV = () => {
     const headers = ["Código", "Descrição", "UR", "DN", "Tipo", "Unidade", "Necessário", "Estoque", "Saldo"];
@@ -134,7 +142,7 @@ function MateriaisPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {enriched.map(m => (
+                {pagedEnriched.map(m => (
                   <tr key={m.id} className="hover:bg-muted/30">
                     <td className="px-4 py-2.5 font-mono text-[12px] font-semibold">{m.codigo}</td>
                     <td className="px-2 py-2.5 truncate max-w-[280px]">{m.descricao}</td>
@@ -169,6 +177,9 @@ function MateriaisPage() {
             </table>
             {filtered.length === 0 && !isLoading && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhum material encontrado.</div>}
           </div>
+          {filtered.length > 0 && (
+            <Pager page={currentPage} totalPages={totalPages} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+          )}
         </section>
       </div>
 
