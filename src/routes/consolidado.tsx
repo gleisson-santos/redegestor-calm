@@ -131,7 +131,7 @@ function ConsolidadoPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map(r => {
+                {paged.map(r => {
                   const total = Number(r.umb) + Number(r.uml) + Number(r.umf);
                   return (
                     <tr key={r.id} className="hover:bg-muted/30">
