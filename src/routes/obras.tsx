@@ -468,3 +468,113 @@ function Select({ label, value, onChange, children }: { label: string; value: st
 function labelSort(s: SortKey): string {
   return ({ prioridade: "prioridade", extensaoM: "extensão", dn: "diâmetro", ur: "UR" } as const)[s];
 }
+
+/* ---------- Month picker minimalista ---------- */
+const MESES_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const MESES_PT_LONG = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+function MonthPicker({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const today = new Date();
+  const [year, setYear] = useState<number>(value ? Number(value.slice(0, 4)) : today.getFullYear());
+
+  const selectedYear = value ? Number(value.slice(0, 4)) : null;
+  const selectedMonth = value ? Number(value.slice(5, 7)) - 1 : null;
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+
+  const label = value
+    ? `${MESES_PT_LONG[selectedMonth!]} ${selectedYear}`
+    : "Qualquer mês";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className={cn(
+          "inline-flex items-center gap-2 h-9 px-2.5 rounded border border-input bg-surface text-[12px] hover:bg-muted/40 transition-colors",
+          value && "border-primary/40 bg-primary/5",
+        )}>
+          <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-muted-foreground font-mono uppercase tracking-wider text-[10px]">Mês</span>
+          <span className="text-[13px] text-foreground">{label}</span>
+          {value && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => { e.stopPropagation(); onChange(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onChange(null); } }}
+              className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+              aria-label="Limpar mês"
+            >
+              <XIcon className="h-3 w-3" />
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-3 pointer-events-auto" align="end">
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setYear(y => y - 1)}
+            className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
+            aria-label="Ano anterior"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <div className="text-sm font-semibold tracking-tight tabular">{year}</div>
+          <button
+            onClick={() => setYear(y => y + 1)}
+            className="h-7 w-7 inline-flex items-center justify-center rounded hover:bg-muted text-muted-foreground"
+            aria-label="Próximo ano"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {MESES_PT.map((m, i) => {
+            const isSelected = selectedYear === year && selectedMonth === i;
+            const isCurrent = currentYear === year && currentMonth === i;
+            return (
+              <button
+                key={m}
+                onClick={() => {
+                  const mm = String(i + 1).padStart(2, "0");
+                  onChange(`${year}-${mm}`);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "h-9 rounded text-[12px] font-medium uppercase tracking-wider transition-colors",
+                  isSelected
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : isCurrent
+                      ? "border border-primary/40 text-foreground hover:bg-muted"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                {m}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+          <button
+            onClick={() => {
+              const mm = String(currentMonth + 1).padStart(2, "0");
+              onChange(`${currentYear}-${mm}`);
+              setYear(currentYear);
+              setOpen(false);
+            }}
+            className="text-[11px] uppercase tracking-wider font-mono text-muted-foreground hover:text-foreground"
+          >
+            Mês atual
+          </button>
+          <button
+            onClick={() => { onChange(null); setOpen(false); }}
+            className="text-[11px] uppercase tracking-wider font-mono text-muted-foreground hover:text-destructive"
+          >
+            Limpar
+          </button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
