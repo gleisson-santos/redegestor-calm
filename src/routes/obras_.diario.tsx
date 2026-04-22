@@ -271,11 +271,13 @@ function DiarioPage() {
                             <DiarioCard
                               key={l.id}
                               lancamento={l}
+                              onEdit={() => setEditing(l)}
                               onDelete={async () => {
                                 if (!confirm("Excluir este lançamento?")) return;
                                 try {
                                   await deleteDiario(l.id);
                                   qc.invalidateQueries({ queryKey: ["diario", selecionada.id] });
+                                  if (editing?.id === l.id) setEditing(null);
                                   toast.success("Lançamento removido.");
                                 } catch (e) {
                                   toast.error((e as Error).message);
