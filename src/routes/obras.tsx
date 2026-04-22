@@ -148,6 +148,13 @@ function ObrasPage() {
             <option value="PEAD">PEAD</option>
             <option value="FOFO">FOFO</option>
           </Select>
+          <Select label="Status" value={statusFilter} onChange={v => setStatusFilter(v as StatusObra | "TODOS")}>
+            <option value="TODOS">Todos</option>
+            {(Object.keys(statusObraLabels) as StatusObra[]).map(s => (
+              <option key={s} value={s}>{statusObraLabels[s]}</option>
+            ))}
+          </Select>
+          <MonthPicker value={monthFilter} onChange={setMonthFilter} />
           <Select label="Ordenar" value={sort} onChange={v => setSort(v as SortKey)}>
             <option value="prioridade">Prioridade</option>
             <option value="extensaoM">Extensão</option>
