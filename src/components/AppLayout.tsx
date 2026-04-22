@@ -217,6 +217,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             )}
 
             {navMid.map(renderNavItem)}
+            {isAdmin && renderNavItem({ to: "/usuarios", label: "Usuários", icon: Users })}
 
             {/* Grupo: Caderno de Encargos */}
             {collapsed ? (
@@ -278,23 +279,36 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
           <div className={cn("border-t border-sidebar-border", collapsed ? "p-2" : "p-3")}>
             {collapsed ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="h-8 w-8 mx-auto rounded-md bg-accent/90 flex items-center justify-center text-white text-[12px] font-semibold cursor-default">
-                    MC
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="right">Marina Cardoso · Gestora</TooltipContent>
-              </Tooltip>
+              <div className="flex flex-col items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="h-8 w-8 rounded-md bg-accent/90 flex items-center justify-center text-white text-[12px] font-semibold cursor-default">
+                      {initials}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{displayName} · {subtitle}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-sidebar-foreground hover:text-white hover:bg-sidebar-accent" onClick={handleSignOut} aria-label="Sair">
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Sair</TooltipContent>
+                </Tooltip>
+              </div>
             ) : (
               <div className="flex items-center gap-2.5 px-1.5 py-1.5 rounded-md hover:bg-sidebar-accent/60 transition-colors">
-                <div className="h-8 w-8 rounded-md bg-accent/90 flex items-center justify-center text-white text-[12px] font-semibold">
-                  MC
+                <div className="h-8 w-8 rounded-md bg-accent/90 flex items-center justify-center text-white text-[12px] font-semibold shrink-0">
+                  {initials}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-medium text-white truncate">Marina Cardoso</div>
-                  <div className="text-[10px] text-sidebar-foreground/60 truncate">Gestora — Engenharia</div>
+                  <div className="text-[12px] font-medium text-white truncate">{displayName}</div>
+                  <div className="text-[10px] text-sidebar-foreground/60 truncate">{subtitle}</div>
                 </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-sidebar-foreground hover:text-white hover:bg-sidebar-accent" onClick={handleSignOut} aria-label="Sair">
+                  <LogOut className="h-3.5 w-3.5" />
+                </Button>
               </div>
             )}
           </div>
