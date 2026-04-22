@@ -16,6 +16,7 @@ import { Route as EncargosRouteImport } from './routes/encargos'
 import { Route as ConsolidadoRouteImport } from './routes/consolidado'
 import { Route as AlvarasRouteImport } from './routes/alvaras'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EncargosRelatoriosRouteImport } from './routes/encargos.relatorios'
 import { Route as EncargosMedicoesRouteImport } from './routes/encargos.medicoes'
 import { Route as EncargosLancamentosRouteImport } from './routes/encargos.lancamentos'
 
@@ -54,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EncargosRelatoriosRoute = EncargosRelatoriosRouteImport.update({
+  id: '/relatorios',
+  path: '/relatorios',
+  getParentRoute: () => EncargosRoute,
+} as any)
 const EncargosMedicoesRoute = EncargosMedicoesRouteImport.update({
   id: '/medicoes',
   path: '/medicoes',
@@ -75,6 +81,7 @@ export interface FileRoutesByFullPath {
   '/urs': typeof UrsRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
+  '/encargos/relatorios': typeof EncargosRelatoriosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/urs': typeof UrsRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
+  '/encargos/relatorios': typeof EncargosRelatoriosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/urs': typeof UrsRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
+  '/encargos/relatorios': typeof EncargosRelatoriosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/urs'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
+    | '/encargos/relatorios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/urs'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
+    | '/encargos/relatorios'
   id:
     | '__root__'
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/urs'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
+    | '/encargos/relatorios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -196,6 +208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/encargos/relatorios': {
+      id: '/encargos/relatorios'
+      path: '/relatorios'
+      fullPath: '/encargos/relatorios'
+      preLoaderRoute: typeof EncargosRelatoriosRouteImport
+      parentRoute: typeof EncargosRoute
+    }
     '/encargos/medicoes': {
       id: '/encargos/medicoes'
       path: '/medicoes'
@@ -216,11 +235,13 @@ declare module '@tanstack/react-router' {
 interface EncargosRouteChildren {
   EncargosLancamentosRoute: typeof EncargosLancamentosRoute
   EncargosMedicoesRoute: typeof EncargosMedicoesRoute
+  EncargosRelatoriosRoute: typeof EncargosRelatoriosRoute
 }
 
 const EncargosRouteChildren: EncargosRouteChildren = {
   EncargosLancamentosRoute: EncargosLancamentosRoute,
   EncargosMedicoesRoute: EncargosMedicoesRoute,
+  EncargosRelatoriosRoute: EncargosRelatoriosRoute,
 }
 
 const EncargosRouteWithChildren = EncargosRoute._addFileChildren(
@@ -239,12 +260,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
