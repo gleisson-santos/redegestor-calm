@@ -38,8 +38,8 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
-  const obrasQ = useQuery({ queryKey: ["obras"], queryFn: fetchObras });
-  const matQ = useQuery({ queryKey: ["materiais"], queryFn: fetchMateriais });
+  const obrasQ = useQuery({ queryKey: ["obras"], queryFn: fetchObras, staleTime: 60_000 });
+  const matQ = useQuery({ queryKey: ["materiais"], queryFn: fetchMateriais, staleTime: 60_000 });
 
   const obras = obrasQ.data ?? [];
   const materiais = matQ.data ?? [];
@@ -68,7 +68,7 @@ function Dashboard() {
   }, [filtered]);
   const topObras = useMemo(() => topPrioridadesPorUR(obras, 3, urFilter), [obras, urFilter]);
   const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
-  const diarioQ = useQuery({ queryKey: ["diario", "all"], queryFn: fetchAllDiario });
+  const diarioQ = useQuery({ queryKey: ["diario", "all"], queryFn: fetchAllDiario, staleTime: 60_000 });
   const metragemMap = useMemo(() => metragemPorObra(diarioQ.data ?? []), [diarioQ.data]);
 
 
@@ -115,7 +115,7 @@ function Dashboard() {
       .slice(0, 12);
   }, [materiais, urFilter]);
 
-  const isLoading = obrasQ.isLoading || matQ.isLoading;
+  const isLoading = obrasQ.isLoading || matQ.isLoading || diarioQ.isLoading;
 
   const comparativoMes = useMemo(() => {
     const hoje = new Date();
