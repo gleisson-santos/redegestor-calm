@@ -397,10 +397,11 @@ function DiarioCard({ lancamento, onDelete, onEdit }: { lancamento: DiarioLancam
 
 /* -------------------- Formulário -------------------- */
 
-function NovoLancamentoForm({ obra }: { obra: Obra }) {
+function NovoLancamentoForm({ obra, editing, onCancelEdit }: { obra: Obra; editing: DiarioLancamento | null; onCancelEdit: () => void }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(true);
-  const [form, setForm] = useState<DiarioInsert>(() => ({
+  const isEdit = !!editing;
+  const initial = (): DiarioInsert => ({
     obra_id: obra.id,
     data_lancamento: new Date().toISOString().slice(0, 10),
     autor: "",
@@ -413,7 +414,8 @@ function NovoLancamentoForm({ obra }: { obra: Obra }) {
     profundidade_media: 1.2,
     descricao: "",
     ocorrencias: "",
-  }));
+  });
+  const [form, setForm] = useState<DiarioInsert>(initial);
 
   // Sincroniza obra selecionada
   useMemo(() => {
@@ -425,16 +427,41 @@ function NovoLancamentoForm({ obra }: { obra: Obra }) {
     }));
   }, [obra.id, obra.material, obra.dn]);
 
+  // Carrega lançamento em edição
+  useMemo(() => {
+    if (editing) {
+      setOpen(true);
+      setForm({
+        obra_id: editing.obra_id,
+        data_lancamento: editing.data_lancamento,
+        autor: editing.autor,
+        clima: editing.clima,
+        equipe_tamanho: editing.equipe_tamanho,
+        atividade: editing.atividade,
+        material_tipo: editing.material_tipo,
+        material_dn: editing.material_dn,
+        metragem_executada: editing.metragem_executada,
+        profundidade_media: editing.profundidade_media,
+        descricao: editing.descricao,
+        ocorrencias: editing.ocorrencias ?? "",
+      });
+    }
+  }, [editing]);
+
   const mut = useMutation({
-    mutationFn: () => insertDiario({
-      ...form,
-      ocorrencias: form.ocorrencias || null,
-    }),
+    mutationFn: () => {
+      const payload = { ...form, ocorrencias: form.ocorrencias || null };
+      return isEdit ? updateDiario(editing!.id, payload) : insertDiario(payload);
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["diario", obra.id] });
       qc.invalidateQueries({ queryKey: ["diario"] });
-      toast.success("Lançamento registrado.");
-      setForm(f => ({ ...f, descricao: "", ocorrencias: "", metragem_executada: 0 }));
+      toast.success(isEdit ? "Lançamento atualizado." : "Lançamento registrado.");
+      if (isEdit) {
+        onCancelEdit();
+      } else {
+        setForm(f => ({ ...f, descricao: "", ocorrencias: "", metragem_executada: 0 }));
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -446,10 +473,24 @@ function NovoLancamentoForm({ obra }: { obra: Obra }) {
         className="w-full flex items-center justify-between px-4 py-3 border-b border-border"
       >
         <div className="flex items-center gap-2">
-          <Plus className="h-4 w-4 text-accent" />
-          <span className="text-sm font-semibold text-foreground">Novo lançamento</span>
+          {isEdit ? <Pencil className="h-4 w-4 text-accent" /> : <Plus className="h-4 w-4 text-accent" />}
+          <span className="text-sm font-semibold text-foreground">
+            {isEdit ? "Editar lançamento" : "Novo lançamento"}
+          </span>
         </div>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        <div className="flex items-center gap-1">
+          {isEdit && (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); onCancelEdit(); setForm(initial()); }}
+              className="text-muted-foreground hover:text-foreground p-1 rounded"
+              title="Cancelar edição"
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          )}
+          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        </div>
       </button>
 
       {open && (
