@@ -77,6 +77,7 @@ function DiarioPage() {
 
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<DiarioLancamento | null>(null);
 
   const obrasAtivas = useMemo(() => {
     const all = obrasQ.data ?? [];
