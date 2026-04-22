@@ -114,6 +114,25 @@ function Dashboard() {
 
   const isLoading = obrasQ.isLoading || matQ.isLoading;
 
+  const comparativoMes = useMemo(() => {
+    const hoje = new Date();
+    const ymAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+    const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    const ymPrev = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    const concl = (ym: string) => obras.filter(o => o.dataTermino?.startsWith(ym));
+    const liber = (ym: string) => obras.filter(o => o.alvaraLiberado === true && (o.dataInicio?.startsWith(ym) || o.dataTermino?.startsWith(ym)));
+    const atualConcl = concl(ymAtual);
+    const prevConcl = concl(ymPrev);
+    return {
+      obrasConcluidas: { atual: atualConcl.length, anterior: prevConcl.length },
+      extensaoExecutada: {
+        atual: atualConcl.reduce((s, o) => s + o.extensaoM, 0),
+        anterior: prevConcl.reduce((s, o) => s + o.extensaoM, 0),
+      },
+      alvarasLiberados: { atual: liber(ymAtual).length, anterior: liber(ymPrev).length },
+    };
+  }, [obras]);
+
   return (
     <AppLayout>
       <div className="px-4 lg:px-8 py-6">
