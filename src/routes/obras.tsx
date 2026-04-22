@@ -43,6 +43,8 @@ function ObrasPage() {
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [matFilter, setMatFilter] = useState<MaterialTipo | "TODOS">("TODOS");
   const [sort, setSort] = useState<SortKey>("prioridade");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [editing, setEditing] = useState<Obra | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<Obra | null>(null);
@@ -76,6 +78,16 @@ function ObrasPage() {
     });
     return r;
   }, [obras, query, urFilter, matFilter, sort]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+
+  // Reset para página 1 quando filtros mudam
+  useEffect(() => { setPage(1); }, [query, urFilter, matFilter, sort]);
 
   const exportCSV = () => {
     const headers = ["Prioridade", "UR", "Bairro", "Logradouro", "Finalidade", "DN", "Extensão (m)", "Material", "Alvará Necessário", "Alvará Liberado"];
@@ -156,7 +168,7 @@ function ObrasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map(o => (
+                {paged.map(o => (
                   <tr key={o.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-2.5"><PrioridadeBadge prioridade={o.prioridade} /></td>
                     <td className="px-2 py-2.5 font-mono text-[12px] font-semibold">{o.ur}</td>
@@ -201,6 +213,9 @@ function ObrasPage() {
             )}
             {isLoading && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Carregando obras…</div>}
           </div>
+          {filtered.length > 0 && (
+            <Pager page={currentPage} totalPages={totalPages} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+          )}
         </div>
       </div>
 
