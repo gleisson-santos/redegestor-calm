@@ -277,7 +277,7 @@ function MapaPage() {
             <section className="bg-card border border-border rounded-md shadow-card">
               <header className="px-4 py-3 border-b border-border flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 text-warning-foreground" />
-                <h3 className="text-sm font-semibold text-foreground">Bairros negligenciados</h3>
+                <h3 className="text-sm font-semibold text-foreground">Bairros com baixa atividade</h3>
               </header>
               <div className="p-3 space-y-1.5">
                 {negligenciados.length === 0 && (

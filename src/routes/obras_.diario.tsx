@@ -16,7 +16,7 @@ import {
   Plus, Trash2, BookOpen, Filter, ChevronDown, ChevronUp, CheckCircle2,
 } from "lucide-react";
 
-export const Route = createFileRoute("/obras/diario")({
+export const Route = createFileRoute("/obras_/diario")({
   head: () => ({
     meta: [
       { title: "Diário de Obra — RedeGestor" },
