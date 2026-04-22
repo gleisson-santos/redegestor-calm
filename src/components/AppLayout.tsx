@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Building2,
@@ -19,10 +19,14 @@ import {
   PanelLeftOpen,
   MapPin,
   ListChecks,
+  LogOut,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 type NavTo =
   | "/" | "/urs" | "/obras" | "/obras/diario" | "/materiais"
