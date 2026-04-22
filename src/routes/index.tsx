@@ -2,7 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/components/StatusBadge";
-import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight, CheckCircle2, PlayCircle } from "lucide-react";
+import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight, CheckCircle2, PlayCircle, FileDown, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { gerarRelatorioExecutivo } from "@/lib/pdfExecutivo";
+import { toast } from "sonner";
 import {
   fetchObras, fetchMateriais,
   totalExtensao, extensaoPorMaterial, topPrioridadesPorUR, urStats,
@@ -111,6 +114,25 @@ function Dashboard() {
 
   const isLoading = obrasQ.isLoading || matQ.isLoading;
 
+  const comparativoMes = useMemo(() => {
+    const hoje = new Date();
+    const ymAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+    const prev = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+    const ymPrev = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+    const concl = (ym: string) => obras.filter(o => o.dataTermino?.startsWith(ym));
+    const liber = (ym: string) => obras.filter(o => o.alvaraLiberado === true && (o.dataInicio?.startsWith(ym) || o.dataTermino?.startsWith(ym)));
+    const atualConcl = concl(ymAtual);
+    const prevConcl = concl(ymPrev);
+    return {
+      obrasConcluidas: { atual: atualConcl.length, anterior: prevConcl.length },
+      extensaoExecutada: {
+        atual: atualConcl.reduce((s, o) => s + o.extensaoM, 0),
+        anterior: prevConcl.reduce((s, o) => s + o.extensaoM, 0),
+      },
+      alvarasLiberados: { atual: liber(ymAtual).length, anterior: liber(ymPrev).length },
+    };
+  }, [obras]);
+
   return (
     <AppLayout>
       <div className="px-4 lg:px-8 py-6">
@@ -120,10 +142,29 @@ function Dashboard() {
             <h1 className="text-2xl font-semibold text-foreground tracking-tight">Consolidação de Frentes de Serviço</h1>
             <p className="text-sm text-muted-foreground mt-1">Controle operacional de obras, materiais técnicos e alvarás por Unidade Regional.</p>
           </div>
-          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
             <span className="font-mono">{isLoading ? "Carregando…" : `Atualizado · ${new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              onClick={() => {
+                try {
+                  gerarRelatorioExecutivo(obras, comparativoMes);
+                  toast.success("Relatório executivo gerado.");
+                } catch (e) {
+                  toast.error((e as Error).message);
+                }
+              }}
+            >
+              <FileDown className="h-4 w-4" />
+              Relatório executivo
+            </Button>
           </div>
         </header>
+
+        <ComparativoMensalCard data={comparativoMes} />
+
 
         <section className="flex items-center gap-1.5 flex-wrap mb-6">
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mr-2">Filtrar por UR:</span>
