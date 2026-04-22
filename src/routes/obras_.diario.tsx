@@ -627,8 +627,8 @@ function NovoLancamentoForm({ obra, editing, onCancelEdit }: { obra: Obra; editi
           </div>
 
           <Button type="submit" disabled={mut.isPending} className="w-full gap-2">
-            <Plus className="h-4 w-4" />
-            {mut.isPending ? "Salvando…" : "Salvar lançamento"}
+            {isEdit ? <Pencil className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {mut.isPending ? "Salvando…" : isEdit ? "Atualizar lançamento" : "Salvar lançamento"}
           </Button>
         </form>
       )}
