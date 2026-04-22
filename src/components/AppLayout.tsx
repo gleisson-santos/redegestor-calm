@@ -16,14 +16,15 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const nav = [
+type NavItem = { to: "/" | "/urs" | "/obras" | "/materiais" | "/consolidado" | "/alvaras"; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+const nav: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/urs", label: "Unidades Regionais", icon: Building2 },
   { to: "/obras", label: "Base de Obras", icon: HardHat },
   { to: "/materiais", label: "Gestão de Materiais", icon: Package },
   { to: "/consolidado", label: "Consolidado", icon: Layers },
   { to: "/alvaras", label: "Alvarás", icon: FileCheck2 },
-] as const;
+];
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
