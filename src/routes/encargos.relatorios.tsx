@@ -1,20 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from "recharts";
+import { useMemo, useState, lazy, Suspense } from "react";
 import { ChevronDown, ChevronRight, DollarSign, HardHat, FileText, Download, FileSpreadsheet, Eye, X as XIcon } from "lucide-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fetchMedicoes, fetchMedicaoDetalhe, fetchObrasAtivasNoMes, currentMesReferencia, MedicaoMensal, ObraDetalhe } from "@/data/encargos";
+import { fetchMedicoes, fetchMedicaoDetalhe, fetchObrasAtivasNoMes, currentMesReferencia, MedicaoMensal } from "@/data/encargos";
 import { urs, URCode } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+
+// Lazy: recharts e jspdf só baixam quando entrar em /encargos/relatorios.
+const RelatoriosCharts = lazy(() => import("./-relatorios-charts"));
+const loadPdf = () => import("./-relatorios-pdf");
 
 export const Route = createFileRoute("/encargos/relatorios")({
   head: () => ({
@@ -29,7 +27,7 @@ export const Route = createFileRoute("/encargos/relatorios")({
 const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const fmtNum = (n: number) => n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 
-const PIE_COLORS = ["hsl(var(--accent))", "hsl(var(--primary))", "hsl(var(--warning))", "hsl(var(--success))"];
+
 
 const statusTone: Record<string, string> = {
   Pendente: "bg-warning-soft text-warning-foreground border-warning/20",
@@ -160,29 +158,9 @@ function RelatoriosPage() {
     a.click(); URL.revokeObjectURL(url);
   };
 
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    const dt = new Date().toLocaleString("pt-BR");
-    doc.setFontSize(16);
-    doc.text("Relatório de Medição Mensal", 14, 18);
-    doc.setFontSize(10);
-    doc.text(`UR: ${urFilter}   |   Mês: ${mesFilter || "—"}`, 14, 26);
-    doc.text(`Gerado em ${dt}`, 14, 32);
-
-    autoTable(doc, {
-      startY: 38,
-      head: [["UR", "Mês Referência", "Valor Total", "Status"]],
-      body: filtered.map(m => [m.ur, m.mes_referencia, fmtBRL(Number(m.valor_total)), m.status]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [37, 99, 235] },
-      didDrawPage: (data) => {
-        const pageCount = doc.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.text(`${dt}   —   Página ${data.pageNumber} de ${pageCount}`,
-          doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
-      },
-    });
-    doc.save(`relatorio_medicoes_${new Date().toISOString().slice(0, 10)}.pdf`);
+  const exportPDF = async () => {
+    const { exportRelatorioPDF } = await loadPdf();
+    exportRelatorioPDF({ urFilter, mesFilter, rows: filtered });
   };
 
   return (
@@ -224,74 +202,23 @@ function RelatoriosPage() {
           <Kpi icon={HardHat} label="Obras ativas no mês" value={String(obrasAtivas)} sub="com lançamentos no período" />
         </section>
 
-        {/* Comparativo por UR */}
-        <section className="mb-5">
-          <ChartCard
-            title="Comparativo de Medições Mensais por Unidade Regional"
-            subtitle={urFilter === "TODAS" ? "UMB · UML · UMF — últimos 12 meses" : `${urFilter} — últimos 12 meses`}
-          >
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={comparativoUR} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  formatter={(v: number, name: string) => [fmtBRL(v), `UR ${name}`]}
-                  labelFormatter={(label) => `Mês: ${label}`}
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                {urCodesAtivas.map(code => (
-                  <Bar
-                    key={code}
-                    dataKey={code}
-                    fill={UR_COLORS[code] ?? "hsl(var(--primary))"}
-                    radius={[3, 3, 0, 0]}
-                    cursor="pointer"
-                    onClick={(data) => {
-                      if (data && typeof data.mes === "string") {
-                        setUrFilter(code as URCode);
-                        setMesFilter(data.mes);
-                        setPage(1);
-                      }
-                    }}
-                  />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        </section>
-
-        {/* Gráficos */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5">
-          <ChartCard title="Evolução dos últimos 12 meses" subtitle={urFilter === "TODAS" ? "Todas as URs" : `Filtrado por ${urFilter}`}>
-            <ResponsiveContainer width="100%" height={260}>
-              <LineChart data={evolucao} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => fmtBRL(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }} />
-                <Line type="monotone" dataKey="valor" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard title="Distribuição por UR" subtitle={`No mês ${mesFilter || "—"}`}>
-            {distribUR.length === 0 ? (
-              <div className="h-[260px] flex items-center justify-center text-sm text-muted-foreground">Sem dados no mês selecionado.</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={distribUR} dataKey="valor" nameKey="ur" cx="50%" cy="50%" outerRadius={90} label={(e) => e.ur}>
-                    {distribUR.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip formatter={(v: number) => fmtBRL(v)} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 6, fontSize: 12 }} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </ChartCard>
-        </section>
+        {/* Gráficos (recharts em chunk lazy) */}
+        <Suspense fallback={<div className="h-[300px] bg-card border border-border rounded-md shadow-card flex items-center justify-center text-sm text-muted-foreground mb-5">Carregando gráficos…</div>}>
+          <RelatoriosCharts
+            comparativoUR={comparativoUR}
+            evolucao={evolucao}
+            distribUR={distribUR}
+            urCodesAtivas={urCodesAtivas}
+            urColors={UR_COLORS}
+            mesFilter={mesFilter}
+            urFilter={urFilter}
+            onBarClick={(ur, mes) => {
+              setUrFilter(ur as URCode);
+              setMesFilter(mes);
+              setPage(1);
+            }}
+          />
+        </Suspense>
 
         {/* Tabela */}
         <section className="bg-card border border-border rounded-md shadow-card">
@@ -361,17 +288,6 @@ function Th({ children, onClick, active, dir, align }: { children: React.ReactNo
   );
 }
 
-function ChartCard({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-card border border-border rounded-md shadow-card p-4">
-      <div className="mb-3">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="text-[11px] text-muted-foreground">{subtitle}</p>
-      </div>
-      {children}
-    </div>
-  );
-}
 
 function Kpi({ icon: Icon, label, value, sub, tone = "neutral" }: { icon: typeof DollarSign; label: string; value: string; sub: string; tone?: "neutral" | "accent" }) {
   const iconCls = tone === "accent" ? "bg-accent-soft text-accent" : "bg-secondary text-secondary-foreground";
@@ -398,29 +314,9 @@ function DrillModal({ medicao, onClose }: { medicao: MedicaoMensal; onClose: () 
     const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
 
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    const dt = new Date().toLocaleString("pt-BR");
-    doc.setFontSize(16);
-    doc.text("Detalhe da Medição", 14, 18);
-    doc.setFontSize(10);
-    doc.text(`UR: ${medicao.ur}   |   Mês: ${medicao.mes_referencia}   |   Total: ${fmtBRL(Number(medicao.valor_total))}`, 14, 26);
-    doc.text(`Status: ${medicao.status}   |   Gerado em ${dt}`, 14, 32);
-
-    autoTable(doc, {
-      startY: 38,
-      head: [["Logradouro", "Bairro", "Valor da Obra"]],
-      body: obras.map((o: ObraDetalhe) => [o.logradouro, o.bairro, fmtBRL(o.valor_total)]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [37, 99, 235] },
-      didDrawPage: (data) => {
-        const pageCount = doc.getNumberOfPages();
-        doc.setFontSize(8);
-        doc.text(`${dt}   —   Página ${data.pageNumber} de ${pageCount}`,
-          doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
-      },
-    });
-    doc.save(`detalhe_${medicao.ur}_${medicao.mes_referencia}.pdf`);
+  const exportPDF = async () => {
+    const { exportDetalhePDF } = await loadPdf();
+    exportDetalhePDF({ medicao, obras });
   };
 
   return (
