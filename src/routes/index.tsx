@@ -1,15 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/components/StatusBadge";
-import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
+import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight, CheckCircle2, PlayCircle, Check } from "lucide-react";
 import {
   fetchObras, fetchMateriais,
-  totalExtensao, extensaoPorMaterial, topPrioridades, urStats,
+  totalExtensao, extensaoPorMaterial, topPrioridadesPorUR, urStats,
+  obrasEmExecucao, marcarServicoExecutado,
 } from "@/data/api";
 import { urs, URCode } from "@/data/mockData";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
   PieChart, Pie, Cell,
