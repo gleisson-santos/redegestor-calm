@@ -10,6 +10,7 @@ import {
   BookOpen,
   ClipboardList,
   Calculator,
+  BarChart3,
   Search,
   Bell,
   Menu,
@@ -20,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-type NavTo = "/" | "/urs" | "/obras" | "/materiais" | "/consolidado" | "/alvaras" | "/encargos" | "/encargos/lancamentos" | "/encargos/medicoes";
+type NavTo = "/" | "/urs" | "/obras" | "/materiais" | "/consolidado" | "/alvaras" | "/encargos" | "/encargos/lancamentos" | "/encargos/medicoes" | "/encargos/relatorios";
 type NavItem = { to: NavTo; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const nav: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
@@ -35,6 +36,7 @@ const encargosGroup: { to: NavTo; label: string; icon: typeof LayoutDashboard }[
   { to: "/encargos", label: "Tabela de Preços", icon: BookOpen },
   { to: "/encargos/lancamentos", label: "Lançamento de Serviços", icon: ClipboardList },
   { to: "/encargos/medicoes", label: "Medições Mensais", icon: Calculator },
+  { to: "/encargos/relatorios", label: "Relatórios de Medição", icon: BarChart3 },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {
