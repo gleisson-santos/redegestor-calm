@@ -165,7 +165,6 @@ function Dashboard() {
 
         <ComparativoMensalCard data={comparativoMes} />
 
-
         <section className="flex items-center gap-1.5 flex-wrap mb-6">
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mr-2">Filtrar por UR:</span>
           <FilterPill active={urFilter === "TODAS"} onClick={() => setUrFilter("TODAS")}>Todas</FilterPill>
