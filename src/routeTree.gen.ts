@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UrsRouteImport } from './routes/urs'
 import { Route as ObrasRouteImport } from './routes/obras'
 import { Route as MateriaisRouteImport } from './routes/materiais'
+import { Route as ConsolidadoRouteImport } from './routes/consolidado'
 import { Route as AlvarasRouteImport } from './routes/alvaras'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -30,6 +31,11 @@ const MateriaisRoute = MateriaisRouteImport.update({
   path: '/materiais',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConsolidadoRoute = ConsolidadoRouteImport.update({
+  id: '/consolidado',
+  path: '/consolidado',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AlvarasRoute = AlvarasRouteImport.update({
   id: '/alvaras',
   path: '/alvaras',
@@ -44,6 +50,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
+  '/consolidado': typeof ConsolidadoRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
+  '/consolidado': typeof ConsolidadoRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
@@ -59,21 +67,36 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/alvaras': typeof AlvarasRoute
+  '/consolidado': typeof ConsolidadoRoute
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/alvaras' | '/materiais' | '/obras' | '/urs'
+  fullPaths:
+    | '/'
+    | '/alvaras'
+    | '/consolidado'
+    | '/materiais'
+    | '/obras'
+    | '/urs'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/alvaras' | '/materiais' | '/obras' | '/urs'
-  id: '__root__' | '/' | '/alvaras' | '/materiais' | '/obras' | '/urs'
+  to: '/' | '/alvaras' | '/consolidado' | '/materiais' | '/obras' | '/urs'
+  id:
+    | '__root__'
+    | '/'
+    | '/alvaras'
+    | '/consolidado'
+    | '/materiais'
+    | '/obras'
+    | '/urs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AlvarasRoute: typeof AlvarasRoute
+  ConsolidadoRoute: typeof ConsolidadoRoute
   MateriaisRoute: typeof MateriaisRoute
   ObrasRoute: typeof ObrasRoute
   UrsRoute: typeof UrsRoute
@@ -102,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MateriaisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/consolidado': {
+      id: '/consolidado'
+      path: '/consolidado'
+      fullPath: '/consolidado'
+      preLoaderRoute: typeof ConsolidadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/alvaras': {
       id: '/alvaras'
       path: '/alvaras'
@@ -122,6 +152,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AlvarasRoute: AlvarasRoute,
+  ConsolidadoRoute: ConsolidadoRoute,
   MateriaisRoute: MateriaisRoute,
   ObrasRoute: ObrasRoute,
   UrsRoute: UrsRoute,
