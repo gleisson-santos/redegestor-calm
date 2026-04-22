@@ -10,25 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UrsRouteImport } from './routes/urs'
-import { Route as LocaisRouteImport } from './routes/locais'
-import { Route as EstoqueRouteImport } from './routes/estoque'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ContratosIndexRouteImport } from './routes/contratos.index'
-import { Route as ContratosContractIdRouteImport } from './routes/contratos.$contractId'
 
 const UrsRoute = UrsRouteImport.update({
   id: '/urs',
   path: '/urs',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LocaisRoute = LocaisRouteImport.update({
-  id: '/locais',
-  path: '/locais',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EstoqueRoute = EstoqueRouteImport.update({
-  id: '/estoque',
-  path: '/estoque',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -36,76 +22,31 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ContratosIndexRoute = ContratosIndexRouteImport.update({
-  id: '/contratos/',
-  path: '/contratos/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContratosContractIdRoute = ContratosContractIdRouteImport.update({
-  id: '/contratos/$contractId',
-  path: '/contratos/$contractId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/estoque': typeof EstoqueRoute
-  '/locais': typeof LocaisRoute
   '/urs': typeof UrsRoute
-  '/contratos/$contractId': typeof ContratosContractIdRoute
-  '/contratos/': typeof ContratosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/estoque': typeof EstoqueRoute
-  '/locais': typeof LocaisRoute
   '/urs': typeof UrsRoute
-  '/contratos/$contractId': typeof ContratosContractIdRoute
-  '/contratos': typeof ContratosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/estoque': typeof EstoqueRoute
-  '/locais': typeof LocaisRoute
   '/urs': typeof UrsRoute
-  '/contratos/$contractId': typeof ContratosContractIdRoute
-  '/contratos/': typeof ContratosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/estoque'
-    | '/locais'
-    | '/urs'
-    | '/contratos/$contractId'
-    | '/contratos/'
+  fullPaths: '/' | '/urs'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/estoque'
-    | '/locais'
-    | '/urs'
-    | '/contratos/$contractId'
-    | '/contratos'
-  id:
-    | '__root__'
-    | '/'
-    | '/estoque'
-    | '/locais'
-    | '/urs'
-    | '/contratos/$contractId'
-    | '/contratos/'
+  to: '/' | '/urs'
+  id: '__root__' | '/' | '/urs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  EstoqueRoute: typeof EstoqueRoute
-  LocaisRoute: typeof LocaisRoute
   UrsRoute: typeof UrsRoute
-  ContratosContractIdRoute: typeof ContratosContractIdRoute
-  ContratosIndexRoute: typeof ContratosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -117,20 +58,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UrsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/locais': {
-      id: '/locais'
-      path: '/locais'
-      fullPath: '/locais'
-      preLoaderRoute: typeof LocaisRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/estoque': {
-      id: '/estoque'
-      path: '/estoque'
-      fullPath: '/estoque'
-      preLoaderRoute: typeof EstoqueRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -138,30 +65,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/contratos/': {
-      id: '/contratos/'
-      path: '/contratos'
-      fullPath: '/contratos/'
-      preLoaderRoute: typeof ContratosIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contratos/$contractId': {
-      id: '/contratos/$contractId'
-      path: '/contratos/$contractId'
-      fullPath: '/contratos/$contractId'
-      preLoaderRoute: typeof ContratosContractIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  EstoqueRoute: EstoqueRoute,
-  LocaisRoute: LocaisRoute,
   UrsRoute: UrsRoute,
-  ContratosContractIdRoute: ContratosContractIdRoute,
-  ContratosIndexRoute: ContratosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
