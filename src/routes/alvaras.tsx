@@ -5,8 +5,9 @@ import { StatusBadge, AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/comp
 import { fetchObras, type Obra } from "@/data/api";
 import { urs, URCode, AlvaraStatus } from "@/data/mockData";
 import { FileCheck2, AlertOctagon, Clock, ShieldCheck, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Pager } from "@/components/Pager";
 
 export const Route = createFileRoute("/alvaras")({
   head: () => ({
@@ -23,6 +24,8 @@ function AlvarasPage() {
   const [query, setQuery] = useState("");
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [statusFilter, setStatusFilter] = useState<AlvaraStatus | "TODOS">("TODOS");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const obrasComAlvara = obras.filter(o => o.alvaraNecessario);
 
@@ -44,6 +47,14 @@ function AlvarasPage() {
       })
       .sort((a: Obra, b: Obra) => a.prioridade - b.prioridade);
   }, [obrasComAlvara, query, urFilter, statusFilter]);
+
+  useEffect(() => { setPage(1); }, [query, urFilter, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
 
   return (
     <AppLayout>
@@ -121,7 +132,7 @@ function AlvarasPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map((o: Obra) => (
+                {paged.map((o: Obra) => (
                   <tr key={o.id} className="hover:bg-muted/30">
                     <td className="px-4 py-2.5"><PrioridadeBadge prioridade={o.prioridade} /></td>
                     <td className="px-2 py-2.5 font-mono text-[12px] font-semibold">{o.ur}</td>
@@ -139,6 +150,9 @@ function AlvarasPage() {
             </table>
             {filtered.length === 0 && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhum alvará corresponde aos filtros aplicados.</div>}
           </div>
+          {filtered.length > 0 && (
+            <Pager page={currentPage} totalPages={totalPages} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+          )}
         </div>
       </div>
     </AppLayout>

@@ -6,7 +6,8 @@ import {
   type ConsolidadoRow, type ConsolidadoInsert,
 } from "@/data/api";
 import { Download, Plus, Pencil, Trash2, Search, Layers } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Pager } from "@/components/Pager";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,8 @@ function ConsolidadoPage() {
   const [editing, setEditing] = useState<ConsolidadoRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<ConsolidadoRow | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteConsolidado(id),
@@ -48,6 +51,14 @@ function ConsolidadoPage() {
     const q = query.trim().toLowerCase();
     return rows.filter(r => !q || `${r.codigo} ${r.descricao}`.toLowerCase().includes(q));
   }, [rows, query]);
+
+  useEffect(() => { setPage(1); }, [query]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
 
   const totals = useMemo(() => filtered.reduce(
     (acc, r) => ({
@@ -120,7 +131,7 @@ function ConsolidadoPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {filtered.map(r => {
+                {paged.map(r => {
                   const total = Number(r.umb) + Number(r.uml) + Number(r.umf);
                   return (
                     <tr key={r.id} className="hover:bg-muted/30">
@@ -146,6 +157,9 @@ function ConsolidadoPage() {
             )}
             {isLoading && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Carregando consolidado…</div>}
           </div>
+          {filtered.length > 0 && (
+            <Pager page={currentPage} totalPages={totalPages} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+          )}
         </section>
       </div>
 
