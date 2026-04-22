@@ -7,7 +7,8 @@ import {
 } from "@/components/StatusBadge";
 import { fetchObras, deleteObra, upsertObra, patchObra, marcarServicoExecutado, type Obra, type ObraInsert } from "@/data/api";
 import { urs, URCode, MaterialTipo, statusObraLabels, type StatusObra } from "@/data/mockData";
-import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, History } from "lucide-react";
+import { HistoricoDrawer } from "@/components/HistoricoDrawer";
 import { useMemo, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ function ObrasPage() {
   const [editing, setEditing] = useState<Obra | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<Obra | null>(null);
+  const [historico, setHistorico] = useState<Obra | null>(null);
 
   const delMut = useMutation({
     mutationFn: (id: string) => deleteObra(id),
@@ -210,6 +212,9 @@ function ObrasPage() {
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </button>
                       )}
+                      <button onClick={() => setHistorico(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-accent" title="Ver histórico">
+                        <History className="h-3.5 w-3.5" />
+                      </button>
                       <button onClick={() => setEditing(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
@@ -256,6 +261,8 @@ function ObrasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <HistoricoDrawer obra={historico} onClose={() => setHistorico(null)} />
     </AppLayout>
   );
 }
