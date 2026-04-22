@@ -41,11 +41,38 @@ function Dashboard() {
   const totalObras = filtered.length;
   const extensao = totalExtensao(filtered);
   const emExecucao = filtered.filter(o => o.status === "em_execucao").length;
+  const concluidas = filtered.filter(o => o.status === "concluida").length;
+  const extensaoConcluida = filtered.filter(o => o.status === "concluida").reduce((s, o) => s + o.extensaoM, 0);
+  const pctConcluidas = totalObras > 0 ? (concluidas / totalObras) * 100 : 0;
+  const pctExtensaoConcluida = extensao > 0 ? (extensaoConcluida / extensao) * 100 : 0;
   const alvarasPendentes = filtered.filter(o => o.alvaraNecessario && !o.alvaraLiberado).length;
 
   const porMaterial = extensaoPorMaterial(filtered);
-  const maxMaterial = Math.max(porMaterial.DEFOFO, porMaterial.PEAD, porMaterial.FOFO, 1);
   const top5 = topPrioridades(obras, 5, urFilter === "TODAS" ? undefined : urFilter);
+
+  // Dados para gráficos (extensão x material x alvará)
+  const chartMaterialAlvara = useMemo(() => {
+    const tipos: ("DEFOFO" | "PEAD" | "FOFO" | "OUTRO")[] = ["DEFOFO", "PEAD", "FOFO", "OUTRO"];
+    return tipos.map(tipo => {
+      const sub = filtered.filter(o => o.material === tipo);
+      const liberado = sub.filter(o => o.alvaraStatus === "liberado" || o.alvaraStatus === "nao_aplicavel").reduce((s, o) => s + o.extensaoM, 0);
+      const pendente = sub.filter(o => o.alvaraStatus === "pendente" || o.alvaraStatus === "vencido").reduce((s, o) => s + o.extensaoM, 0);
+      return { material: tipo, Liberado: Math.round(liberado), Pendente: Math.round(pendente) };
+    }).filter(d => d.Liberado + d.Pendente > 0);
+  }, [filtered]);
+
+  const chartStatus = useMemo(() => {
+    const buckets: Record<string, { name: string; value: number; color: string }> = {
+      concluida: { name: "Concluída", value: 0, color: "oklch(0.55 0.14 155)" },
+      em_execucao: { name: "Em execução", value: 0, color: "oklch(0.62 0.16 200)" },
+      aguardando_alvara: { name: "Aguard. alvará", value: 0, color: "oklch(0.70 0.15 75)" },
+      liberada: { name: "Liberada", value: 0, color: "oklch(0.60 0.10 240)" },
+      planejada: { name: "Planejada", value: 0, color: "oklch(0.70 0.02 250)" },
+      suspensa: { name: "Suspensa", value: 0, color: "oklch(0.55 0.20 25)" },
+    };
+    filtered.forEach(o => { if (buckets[o.status]) buckets[o.status].value += 1; });
+    return Object.values(buckets).filter(b => b.value > 0);
+  }, [filtered]);
 
   // Aquisições críticas: materiais cuja necessidade > estoque, filtrado por UR
   const aquisicoes = useMemo(() => {
