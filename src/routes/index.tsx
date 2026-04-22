@@ -11,6 +11,7 @@ import {
   totalExtensao, extensaoPorMaterial, topPrioridadesPorUR, urStats,
   obrasEmExecucao,
 } from "@/data/api";
+import { fetchAllDiario, metragemPorObra } from "@/data/diario";
 import { urs, URCode } from "@/data/mockData";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,8 @@ function Dashboard() {
   }, [filtered]);
   const topObras = useMemo(() => topPrioridadesPorUR(obras, 3, urFilter), [obras, urFilter]);
   const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
+  const diarioQ = useQuery({ queryKey: ["diario", "all"], queryFn: fetchAllDiario });
+  const metragemMap = useMemo(() => metragemPorObra(diarioQ.data ?? []), [diarioQ.data]);
 
 
   // Quantidade de obras por UR (UMB · UML · UMF) — série por status
@@ -163,8 +166,6 @@ function Dashboard() {
           </div>
         </header>
 
-        <ComparativoMensalCard data={comparativoMes} />
-
         <section className="flex items-center gap-1.5 flex-wrap mb-6">
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mr-2">Filtrar por UR:</span>
           <FilterPill active={urFilter === "TODAS"} onClick={() => setUrFilter("TODAS")}>Todas</FilterPill>
@@ -238,21 +239,38 @@ function Dashboard() {
               {emExecucaoList.length === 0 && !isLoading && (
                 <div className="px-3 py-8 text-center text-[13px] text-muted-foreground">Nenhuma obra em execução no momento.</div>
               )}
-              {emExecucaoList.map(o => (
-                <div key={o.id} className="px-3 py-2.5 rounded border border-border hover:border-border-strong transition-colors">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-foreground text-[13px] truncate">{o.logradouro}</div>
-                      <div className="text-[11px] text-muted-foreground truncate">{o.bairro} · <span className="font-mono">{o.ur}</span></div>
+              {emExecucaoList.map(o => {
+                const executado = metragemMap[o.id] ?? 0;
+                const total = o.extensaoM || 0;
+                const pct = total > 0 ? Math.min(100, (executado / total) * 100) : 0;
+                const tone = pct >= 100 ? "oklch(0.55 0.14 155)" : pct >= 50 ? "oklch(0.62 0.16 200)" : "oklch(0.70 0.15 75)";
+                return (
+                  <div key={o.id} className="px-3 py-2.5 rounded border border-border hover:border-border-strong transition-colors">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-foreground text-[13px] truncate">{o.logradouro}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{o.bairro} · <span className="font-mono">{o.ur}</span></div>
+                      </div>
+                      <PrioridadeBadge prioridade={o.prioridade} />
                     </div>
-                    <PrioridadeBadge prioridade={o.prioridade} />
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between text-[10px] font-mono mb-1">
+                        <span className="text-muted-foreground">Rede assentada</span>
+                        <span className="tabular" style={{ color: tone }}>
+                          {executado.toLocaleString("pt-BR")} / {total.toLocaleString("pt-BR")} m · {pct.toFixed(0)}%
+                        </span>
+                      </div>
+                      <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: tone }} />
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-1.5 font-mono">
+                      {o.dataInicio && <>Início: {fmtISODate(o.dataInicio)}</>}
+                      {o.dataTermino && <> → {fmtISODate(o.dataTermino)}</>}
+                    </div>
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-1.5 font-mono">
-                    {o.dataInicio && <>Início: {fmtISODate(o.dataInicio)}</>}
-                    {o.dataTermino && <> → {fmtISODate(o.dataTermino)}</>}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         </div>
