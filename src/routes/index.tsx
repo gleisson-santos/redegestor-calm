@@ -68,7 +68,7 @@ function Dashboard() {
   }, [filtered]);
   const topObras = useMemo(() => topPrioridadesPorUR(obras, 3, urFilter), [obras, urFilter]);
   const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
-  const diarioQ = useQuery({ queryKey: ["diario", "all"], queryFn: fetchAllDiario });
+  const diarioQ = useQuery({ queryKey: ["diario", "all"], queryFn: fetchAllDiario, staleTime: 60_000 });
   const metragemMap = useMemo(() => metragemPorObra(diarioQ.data ?? []), [diarioQ.data]);
 
 
