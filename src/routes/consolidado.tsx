@@ -52,6 +52,14 @@ function ConsolidadoPage() {
     return rows.filter(r => !q || `${r.codigo} ${r.descricao}`.toLowerCase().includes(q));
   }, [rows, query]);
 
+  useEffect(() => { setPage(1); }, [query]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paged = useMemo(
+    () => filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+
   const totals = useMemo(() => filtered.reduce(
     (acc, r) => ({
       umb: acc.umb + Number(r.umb),
