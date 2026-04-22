@@ -24,6 +24,8 @@ function AlvarasPage() {
   const [query, setQuery] = useState("");
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [statusFilter, setStatusFilter] = useState<AlvaraStatus | "TODOS">("TODOS");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const obrasComAlvara = obras.filter(o => o.alvaraNecessario);
 
