@@ -301,7 +301,7 @@ function DiarioPage() {
           {/* COLUNA 3: novo lançamento */}
           <aside className="lg:max-h-[78vh] lg:overflow-y-auto">
             {selecionada ? (
-              <NovoLancamentoForm obra={selecionada} />
+              <NovoLancamentoForm obra={selecionada} editing={editing} onCancelEdit={() => setEditing(null)} />
             ) : (
               <div className="bg-card border border-dashed border-border rounded-md p-6 text-center text-[13px] text-muted-foreground">
                 Selecione uma obra para lançar.
