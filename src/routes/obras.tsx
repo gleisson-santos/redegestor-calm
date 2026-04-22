@@ -1,15 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import {
   StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge, FinalidadeBadge,
 } from "@/components/StatusBadge";
-import {
-  obras, urs, URCode, MaterialTipo, StatusObra, Obra, statusObraLabels,
-} from "@/data/mockData";
-import { Download, Search, Filter } from "lucide-react";
+import { fetchObras, deleteObra, upsertObra, type Obra, type ObraInsert } from "@/data/api";
+import { urs, URCode, MaterialTipo } from "@/data/mockData";
+import { Download, Search, Filter, Plus, Pencil, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/obras")({
   head: () => ({
@@ -24,11 +34,22 @@ export const Route = createFileRoute("/obras")({
 type SortKey = "prioridade" | "extensaoM" | "ur" | "dn";
 
 function ObrasPage() {
+  const qc = useQueryClient();
+  const { data: obras = [], isLoading } = useQuery({ queryKey: ["obras"], queryFn: fetchObras });
+
   const [query, setQuery] = useState("");
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
   const [matFilter, setMatFilter] = useState<MaterialTipo | "TODOS">("TODOS");
-  const [statusFilter, setStatusFilter] = useState<StatusObra | "TODOS">("TODOS");
   const [sort, setSort] = useState<SortKey>("prioridade");
+  const [editing, setEditing] = useState<Obra | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<Obra | null>(null);
+
+  const delMut = useMutation({
+    mutationFn: (id: string) => deleteObra(id),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["obras"] }); toast.success("Obra excluída."); setDeleting(null); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const filtered = useMemo(() => {
     let r: Obra[] = obras.filter(o => {
@@ -36,7 +57,6 @@ function ObrasPage() {
       if (q && !`${o.codigo} ${o.logradouro} ${o.bairro}`.toLowerCase().includes(q)) return false;
       if (urFilter !== "TODAS" && o.ur !== urFilter) return false;
       if (matFilter !== "TODOS" && o.material !== matFilter) return false;
-      if (statusFilter !== "TODOS" && o.status !== statusFilter) return false;
       return true;
     });
     r = [...r].sort((a, b) => {
@@ -47,14 +67,11 @@ function ObrasPage() {
       return 0;
     });
     return r;
-  }, [query, urFilter, matFilter, statusFilter, sort]);
+  }, [obras, query, urFilter, matFilter, sort]);
 
   const exportCSV = () => {
-    const headers = ["Código", "UR", "Bairro", "Logradouro", "Finalidade", "DN", "Extensão (m)", "Material", "Prioridade", "Status", "Alvará", "Responsável", "Início", "Conclusão"];
-    const rows = filtered.map(o => [
-      o.codigo, o.ur, o.bairro, o.logradouro, o.finalidade, o.dn, o.extensaoM, o.material,
-      o.prioridade, statusObraLabels[o.status], o.alvaraStatus, o.responsavel, o.inicioPrevisto, o.conclusaoPrevista,
-    ]);
+    const headers = ["Prioridade", "UR", "Bairro", "Logradouro", "Finalidade", "DN", "Extensão (m)", "Material", "Alvará Necessário", "Alvará Liberado"];
+    const rows = filtered.map(o => [o.prioridade, o.ur, o.bairro, o.logradouro, o.finalidade, o.dn, o.extensaoM, o.material, o.alvaraNecessario ? "Sim" : "Não", o.alvaraLiberado === null ? "N/A" : o.alvaraLiberado ? "Sim" : "Não"]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -72,19 +89,24 @@ function ObrasPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Base de Obras</h1>
             <p className="text-sm text-muted-foreground mt-1">{filtered.length} de {obras.length} registros · ordenado por {labelSort(sort)}.</p>
           </div>
-          <Button onClick={exportCSV} variant="outline" size="sm" className="gap-2">
-            <Download className="h-4 w-4" /> Exportar CSV
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={exportCSV} variant="outline" size="sm" className="gap-2"><Download className="h-4 w-4" /> Exportar CSV</Button>
+            <Dialog open={creating} onOpenChange={setCreating}>
+              <DialogTrigger asChild>
+                <Button size="sm" className="gap-2"><Plus className="h-4 w-4" /> Nova obra</Button>
+              </DialogTrigger>
+              <ObraDialogContent obra={null} onClose={() => setCreating(false)} />
+            </Dialog>
+          </div>
         </header>
 
-        {/* Filtros */}
         <div className="bg-card border border-border rounded-md shadow-card p-3 mb-4 flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[220px]">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Buscar código, logradouro ou bairro…"
+              placeholder="Buscar logradouro, bairro ou código…"
               className="w-full h-9 pl-8 pr-3 rounded border border-input bg-surface text-[13px] focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
           </div>
@@ -97,12 +119,6 @@ function ObrasPage() {
             <option value="DEFOFO">DEFOFO</option>
             <option value="PEAD">PEAD</option>
             <option value="FOFO">FOFO</option>
-          </Select>
-          <Select label="Status" value={statusFilter} onChange={v => setStatusFilter(v as StatusObra | "TODOS")}>
-            <option value="TODOS">Todos</option>
-            {(Object.keys(statusObraLabels) as StatusObra[]).map(s => (
-              <option key={s} value={s}>{statusObraLabels[s]}</option>
-            ))}
           </Select>
           <Select label="Ordenar" value={sort} onChange={v => setSort(v as SortKey)}>
             <option value="prioridade">Prioridade</option>
@@ -118,7 +134,6 @@ function ObrasPage() {
               <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
                 <tr>
                   <th className="text-left px-3 py-2.5 font-medium">Pri</th>
-                  <th className="text-left px-2 py-2.5 font-medium">Código</th>
                   <th className="text-left px-2 py-2.5 font-medium">UR</th>
                   <th className="text-left px-2 py-2.5 font-medium">Logradouro</th>
                   <th className="text-left px-2 py-2.5 font-medium">Finalidade</th>
@@ -127,39 +142,169 @@ function ObrasPage() {
                   <th className="text-right px-2 py-2.5 font-medium">Extensão</th>
                   <th className="text-left px-2 py-2.5 font-medium">Status</th>
                   <th className="text-left px-2 py-2.5 font-medium">Alvará</th>
-                  <th className="text-left px-3 py-2.5 font-medium">Responsável</th>
+                  <th className="text-right px-3 py-2.5 font-medium">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {filtered.map(o => (
                   <tr key={o.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-3 py-2.5"><PrioridadeBadge prioridade={o.prioridade} /></td>
-                    <td className="px-2 py-2.5 font-mono text-[11px] text-muted-foreground">{o.codigo}</td>
                     <td className="px-2 py-2.5 font-mono text-[12px] font-semibold">{o.ur}</td>
                     <td className="px-2 py-2.5">
-                      <div className="font-medium truncate max-w-[260px]">{o.logradouro}</div>
+                      <div className="font-medium truncate max-w-[280px]">{o.logradouro}</div>
                       <div className="text-[11px] text-muted-foreground">{o.bairro}</div>
                     </td>
                     <td className="px-2 py-2.5"><FinalidadeBadge finalidade={o.finalidade} /></td>
                     <td className="px-2 py-2.5"><MaterialBadge tipo={o.material} /></td>
-                    <td className="px-2 py-2.5 text-right tabular font-mono">{o.dn}</td>
+                    <td className="px-2 py-2.5 text-right tabular font-mono">{o.dn || "—"}</td>
                     <td className="px-2 py-2.5 text-right tabular font-mono font-semibold">{o.extensaoM.toLocaleString("pt-BR")} m</td>
                     <td className="px-2 py-2.5"><StatusBadge status={o.status} /></td>
                     <td className="px-2 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
-                    <td className="px-3 py-2.5 text-muted-foreground text-[12px] truncate max-w-[140px]">{o.responsavel}</td>
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      <button onClick={() => setEditing(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar">
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => setDeleting(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-destructive-soft text-muted-foreground hover:text-destructive" title="Excluir">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {filtered.length === 0 && (
+            {filtered.length === 0 && !isLoading && (
               <div className="px-5 py-12 text-center text-sm text-muted-foreground inline-flex items-center justify-center gap-2 w-full">
                 <Filter className="h-4 w-4" /> Nenhuma obra corresponde aos filtros aplicados.
               </div>
             )}
+            {isLoading && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Carregando obras…</div>}
           </div>
         </div>
       </div>
+
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onOpenChange={(open) => { if (!open) setEditing(null); }}>
+        {editing && <ObraDialogContent obra={editing} onClose={() => setEditing(null)} />}
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleting} onOpenChange={(open) => { if (!open) setDeleting(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir obra?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. A obra <span className="font-medium">{deleting?.logradouro}</span> ({deleting?.bairro}) será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleting && delMut.mutate(deleting.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
+  );
+}
+
+function ObraDialogContent({ obra, onClose }: { obra: Obra | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [form, setForm] = useState<ObraInsert>(() => ({
+    prioridade: obra?.prioridade ?? 99,
+    ur: obra?.ur ?? "UMF",
+    bairro: obra?.bairro ?? "",
+    logradouro: obra?.logradouro ?? "",
+    finalidade: obra?.finalidade ?? "extensao",
+    dn: obra?.dn || null,
+    extensao: obra?.extensaoM ?? 0,
+    material: obra?.material ?? "DEFOFO",
+    alvara_necessario: obra?.alvaraNecessario ?? false,
+    alvara_liberado: obra?.alvaraLiberado ?? null,
+    status: obra?.rawStatus ?? "pendente",
+  }));
+
+  const mut = useMutation({
+    mutationFn: () => upsertObra({ ...form, id: obra?.id }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["obras"] });
+      toast.success(obra ? "Obra atualizada." : "Obra criada.");
+      onClose();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <DialogContent className="max-w-2xl">
+      <DialogHeader>
+        <DialogTitle>{obra ? "Editar obra" : "Nova obra"}</DialogTitle>
+      </DialogHeader>
+      <form onSubmit={(e) => { e.preventDefault(); mut.mutate(); }} className="grid grid-cols-2 gap-3 py-2">
+        <Field label="Prioridade">
+          <Input type="number" min={1} max={99} value={form.prioridade} onChange={e => setForm(f => ({ ...f, prioridade: Number(e.target.value) }))} />
+        </Field>
+        <Field label="UR">
+          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.ur} onChange={e => setForm(f => ({ ...f, ur: e.target.value }))}>
+            {urs.map(u => <option key={u.code} value={u.code}>{u.code}</option>)}
+          </select>
+        </Field>
+        <Field label="Bairro" full>
+          <Input required value={form.bairro} onChange={e => setForm(f => ({ ...f, bairro: e.target.value }))} />
+        </Field>
+        <Field label="Logradouro" full>
+          <Input required value={form.logradouro} onChange={e => setForm(f => ({ ...f, logradouro: e.target.value }))} />
+        </Field>
+        <Field label="Finalidade">
+          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.finalidade ?? "extensao"} onChange={e => setForm(f => ({ ...f, finalidade: e.target.value }))}>
+            <option value="extensao">Extensão</option>
+            <option value="substituicao">Substituição</option>
+            <option value="extensao_substituicao">Extensão / Substituição</option>
+          </select>
+        </Field>
+        <Field label="Material">
+          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.material} onChange={e => setForm(f => ({ ...f, material: e.target.value }))}>
+            <option value="DEFOFO">DEFOFO</option>
+            <option value="PEAD">PEAD</option>
+            <option value="FOFO">FOFO</option>
+            <option value="OUTRO">Outro</option>
+          </select>
+        </Field>
+        <Field label="DN (mm)">
+          <Input type="number" value={form.dn ?? ""} onChange={e => setForm(f => ({ ...f, dn: e.target.value ? Number(e.target.value) : null }))} />
+        </Field>
+        <Field label="Extensão (m)">
+          <Input type="number" step="0.01" value={form.extensao} onChange={e => setForm(f => ({ ...f, extensao: Number(e.target.value) }))} />
+        </Field>
+        <Field label="Alvará necessário?">
+          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={form.alvara_necessario ? "sim" : "nao"} onChange={e => setForm(f => ({ ...f, alvara_necessario: e.target.value === "sim", alvara_liberado: e.target.value === "sim" ? f.alvara_liberado : null }))}>
+            <option value="nao">Não</option>
+            <option value="sim">Sim</option>
+          </select>
+        </Field>
+        <Field label="Alvará liberado?">
+          <select className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" disabled={!form.alvara_necessario}
+            value={form.alvara_liberado === null ? "" : form.alvara_liberado ? "sim" : "nao"}
+            onChange={e => setForm(f => ({ ...f, alvara_liberado: e.target.value === "" ? null : e.target.value === "sim" }))}>
+            <option value="">N/A</option>
+            <option value="sim">Sim</option>
+            <option value="nao">Não</option>
+          </select>
+        </Field>
+        <DialogFooter className="col-span-2 mt-2">
+          <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
+          <Button type="submit" disabled={mut.isPending}>{mut.isPending ? "Salvando…" : obra ? "Salvar alterações" : "Criar obra"}</Button>
+        </DialogFooter>
+      </form>
+    </DialogContent>
+  );
+}
+
+function Field({ label, full, children }: { label: string; full?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={cn("flex flex-col gap-1.5", full && "col-span-2")}>
+      <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">{label}</Label>
+      {children}
+    </div>
   );
 }
 
@@ -167,11 +312,7 @@ function Select({ label, value, onChange, children }: { label: string; value: st
   return (
     <label className="inline-flex items-center gap-2 h-9 px-2 rounded border border-input bg-surface text-[12px]">
       <span className="text-muted-foreground font-mono uppercase tracking-wider text-[10px]">{label}</span>
-      <select
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className="bg-transparent text-[13px] focus:outline-none cursor-pointer pr-1"
-      >
+      <select value={value} onChange={e => onChange(e.target.value)} className="bg-transparent text-[13px] focus:outline-none cursor-pointer pr-1">
         {children}
       </select>
     </label>

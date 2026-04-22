@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge } from "@/components/StatusBadge";
-import {
-  urs, urStats, obrasByUR, extensaoPorMaterial, URCode,
-} from "@/data/mockData";
+import { fetchObras, urStats, obrasByUR, extensaoPorMaterial } from "@/data/api";
+import { urs, URCode } from "@/data/mockData";
 import { Building2, HardHat, Ruler, AlertTriangle, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -19,11 +19,12 @@ export const Route = createFileRoute("/urs")({
 });
 
 function URsPage() {
+  const { data: obras = [] } = useQuery({ queryKey: ["obras"], queryFn: fetchObras });
   const [selected, setSelected] = useState<URCode>("UMB");
   const ur = urs.find(u => u.code === selected)!;
-  const stats = urStats(selected);
-  const obras = obrasByUR(selected).sort((a, b) => a.prioridade - b.prioridade);
-  const porMaterial = extensaoPorMaterial(obras);
+  const stats = urStats(obras, selected);
+  const subset = obrasByUR(obras, selected).sort((a, b) => a.prioridade - b.prioridade);
+  const porMaterial = extensaoPorMaterial(subset);
 
   return (
     <AppLayout>
@@ -34,20 +35,14 @@ function URsPage() {
           <p className="text-sm text-muted-foreground mt-1">UMB · UML · UMF — comparação operacional e detalhamento por unidade.</p>
         </header>
 
-        {/* UR cards */}
         <section className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
           {urs.map(u => {
-            const s = urStats(u.code);
+            const s = urStats(obras, u.code);
             const isSel = selected === u.code;
             return (
-              <button
-                key={u.code}
-                onClick={() => setSelected(u.code)}
-                className={cn(
-                  "text-left p-4 bg-card border rounded-md transition-all shadow-card",
-                  isSel ? "border-accent ring-2 ring-accent/20" : "border-border hover:border-border-strong",
-                )}
-              >
+              <button key={u.code} onClick={() => setSelected(u.code)}
+                className={cn("text-left p-4 bg-card border rounded-md transition-all shadow-card",
+                  isSel ? "border-accent ring-2 ring-accent/20" : "border-border hover:border-border-strong")}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <span className="h-2.5 w-2.5 rounded-full" style={{ background: u.cor }} />
@@ -59,7 +54,7 @@ function URsPage() {
                 <div className="text-[11px] text-muted-foreground mt-0.5">{u.cidade}</div>
                 <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
                   <Stat n={s.obras} l="Obras" />
-                  <Stat n={s.extensaoM.toLocaleString("pt-BR")} l="Metros" mono />
+                  <Stat n={Math.round(s.extensaoM).toLocaleString("pt-BR")} l="Metros" mono />
                   <Stat n={s.criticas} l="Críticas" tone={s.criticas > 0 ? "warning" : "neutral"} />
                 </div>
               </button>
@@ -67,7 +62,6 @@ function URsPage() {
           })}
         </section>
 
-        {/* Selected UR detail */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <section className="lg:col-span-1 bg-card border border-border rounded-md shadow-card">
             <header className="px-5 py-4 border-b border-border">
@@ -82,8 +76,8 @@ function URsPage() {
             <div className="p-5 space-y-4">
               <div className="grid grid-cols-2 gap-2">
                 <MiniKpi icon={HardHat} value={stats.obras.toString()} label="Obras" />
-                <MiniKpi icon={Ruler} value={`${stats.extensaoM.toLocaleString("pt-BR")} m`} label="Extensão" />
-                <MiniKpi icon={Building2} value={stats.emExecucao.toString()} label="Em execução" tone="accent" />
+                <MiniKpi icon={Ruler} value={`${Math.round(stats.extensaoM).toLocaleString("pt-BR")} m`} label="Extensão" />
+                <MiniKpi icon={Building2} value={stats.aguardandoAlvara.toString()} label="Aguard. alvará" tone="warning" />
                 <MiniKpi icon={AlertTriangle} value={stats.criticas.toString()} label="Críticas" tone="warning" />
               </div>
               <div className="pt-2 border-t border-border">
@@ -91,7 +85,7 @@ function URsPage() {
                 {(["DEFOFO", "PEAD", "FOFO"] as const).map(t => (
                   <div key={t} className="flex items-center justify-between mb-1.5">
                     <MaterialBadge tipo={t} />
-                    <span className="font-mono tabular text-[12px]">{porMaterial[t].toLocaleString("pt-BR")} m</span>
+                    <span className="font-mono tabular text-[12px]">{Math.round(porMaterial[t]).toLocaleString("pt-BR")} m</span>
                   </div>
                 ))}
               </div>
@@ -102,18 +96,17 @@ function URsPage() {
             <header className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">Obras da {selected}</h2>
-                <p className="text-[12px] text-muted-foreground mt-0.5">{obras.length} registros · ordenados por prioridade.</p>
+                <p className="text-[12px] text-muted-foreground mt-0.5">{subset.length} registros · ordenados por prioridade.</p>
               </div>
               <Link to="/obras" className="text-[12px] text-accent font-medium inline-flex items-center gap-1 hover:underline">
                 Base completa <ArrowRight className="h-3 w-3" />
               </Link>
             </header>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto max-h-[600px]">
               <table className="w-full text-[13px]">
-                <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground sticky top-0">
                   <tr>
                     <th className="text-left px-4 py-2 font-medium">Pri</th>
-                    <th className="text-left px-2 py-2 font-medium">Código</th>
                     <th className="text-left px-2 py-2 font-medium">Logradouro</th>
                     <th className="text-left px-2 py-2 font-medium">Mat.</th>
                     <th className="text-right px-2 py-2 font-medium">DN</th>
@@ -123,16 +116,15 @@ function URsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {obras.map(o => (
+                  {subset.map(o => (
                     <tr key={o.id} className="hover:bg-muted/30">
                       <td className="px-4 py-2"><PrioridadeBadge prioridade={o.prioridade} /></td>
-                      <td className="px-2 py-2 font-mono text-[11px] text-muted-foreground">{o.codigo}</td>
                       <td className="px-2 py-2">
-                        <div className="font-medium truncate max-w-[220px]">{o.logradouro}</div>
+                        <div className="font-medium truncate max-w-[260px]">{o.logradouro}</div>
                         <div className="text-[11px] text-muted-foreground">{o.bairro}</div>
                       </td>
                       <td className="px-2 py-2"><MaterialBadge tipo={o.material} /></td>
-                      <td className="px-2 py-2 text-right tabular font-mono text-[12px]">{o.dn}</td>
+                      <td className="px-2 py-2 text-right tabular font-mono text-[12px]">{o.dn || "—"}</td>
                       <td className="px-2 py-2 text-right tabular font-mono">{o.extensaoM} m</td>
                       <td className="px-2 py-2"><StatusBadge status={o.status} /></td>
                       <td className="px-4 py-2"><AlvaraBadge status={o.alvaraStatus} /></td>
@@ -140,7 +132,7 @@ function URsPage() {
                   ))}
                 </tbody>
               </table>
-              {obras.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma obra registrada.</div>}
+              {subset.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma obra registrada.</div>}
             </div>
           </section>
         </div>

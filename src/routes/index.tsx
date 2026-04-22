@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
-import { StatusBadge, AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/components/StatusBadge";
+import { AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/components/StatusBadge";
+import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight } from "lucide-react";
 import {
-  HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight,
-} from "lucide-react";
-import {
-  obras, urs, urStats, totalExtensao, extensaoPorMaterial, topPrioridades,
-  necessidadeTubos, URCode,
-} from "@/data/mockData";
+  fetchObras, fetchMateriais,
+  totalExtensao, extensaoPorMaterial, topPrioridades, urStats,
+} from "@/data/api";
+import { urs, URCode } from "@/data/mockData";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -23,44 +23,55 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
+  const obrasQ = useQuery({ queryKey: ["obras"], queryFn: fetchObras });
+  const matQ = useQuery({ queryKey: ["materiais"], queryFn: fetchMateriais });
+
+  const obras = obrasQ.data ?? [];
+  const materiais = matQ.data ?? [];
+
   const filtered = useMemo(
-    () => (urFilter === "TODAS" ? obras : obras.filter(o => o.ur === urFilter)),
-    [urFilter],
+    () => urFilter === "TODAS" ? obras : obras.filter(o => o.ur === urFilter),
+    [obras, urFilter],
   );
 
   const totalObras = filtered.length;
   const extensao = totalExtensao(filtered);
   const emExecucao = filtered.filter(o => o.status === "em_execucao").length;
-  const alvarasPendentes = filtered.filter(
-    o => o.alvaraNecessidade === "sim" && (o.alvaraStatus === "pendente" || o.alvaraStatus === "vencido"),
-  ).length;
+  const alvarasPendentes = filtered.filter(o => o.alvaraNecessario && !o.alvaraLiberado).length;
 
   const porMaterial = extensaoPorMaterial(filtered);
   const maxMaterial = Math.max(porMaterial.DEFOFO, porMaterial.PEAD, porMaterial.FOFO, 1);
+  const top5 = topPrioridades(obras, 5, urFilter === "TODAS" ? undefined : urFilter);
 
-  const top5 = topPrioridades(5, urFilter === "TODAS" ? undefined : urFilter);
+  // Aquisições críticas: materiais cuja necessidade > estoque, filtrado por UR
+  const aquisicoes = useMemo(() => {
+    const list = urFilter === "TODAS" ? materiais : materiais.filter(m => m.ur === urFilter);
+    return list
+      .map(m => ({
+        ...m,
+        saldo: Number(m.quantidade_estoque) - Number(m.quantidade_necessaria),
+      }))
+      .filter(m => m.saldo < 0)
+      .sort((a, b) => a.saldo - b.saldo)
+      .slice(0, 12);
+  }, [materiais, urFilter]);
 
-  const necessidades = necessidadeTubos(filtered).filter(n => n.necessario > 0);
-  const aquisicoes = necessidades.filter(n => n.saldo < 0);
+  const isLoading = obrasQ.isLoading || matQ.isLoading;
 
   return (
     <AppLayout>
       <div className="px-4 lg:px-8 py-6 max-w-[1400px] mx-auto">
-        {/* Header */}
         <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6 pb-5 border-b border-border">
           <div>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mb-1">Painel gerencial</div>
             <h1 className="text-2xl font-semibold text-foreground tracking-tight">Consolidação de Frentes de Serviço</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Controle operacional de obras, materiais técnicos e alvarás por Unidade Regional.
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">Controle operacional de obras, materiais técnicos e alvarás por Unidade Regional.</p>
           </div>
           <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-            <span className="font-mono">Atualizado · {new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+            <span className="font-mono">{isLoading ? "Carregando…" : `Atualizado · ${new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}`}</span>
           </div>
         </header>
 
-        {/* UR filter */}
         <section className="flex items-center gap-1.5 flex-wrap mb-6">
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mr-2">Filtrar por UR:</span>
           <FilterPill active={urFilter === "TODAS"} onClick={() => setUrFilter("TODAS")}>Todas</FilterPill>
@@ -69,16 +80,14 @@ function Dashboard() {
           ))}
         </section>
 
-        {/* KPI cards */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <Kpi icon={HardHat} label="Total de Obras" value={totalObras.toString()} sub={`${urFilter === "TODAS" ? "todas as URs" : urFilter}`} />
-          <Kpi icon={Ruler} label="Extensão Total" value={`${extensao.toLocaleString("pt-BR")} m`} sub="metros lineares planejados" />
+          <Kpi icon={HardHat} label="Total de Obras" value={totalObras.toString()} sub={urFilter === "TODAS" ? "todas as URs" : urFilter} />
+          <Kpi icon={Ruler} label="Extensão Total" value={`${Math.round(extensao).toLocaleString("pt-BR")} m`} sub="metros lineares planejados" />
           <Kpi icon={FileCheck2} label="Alvarás Pendentes" value={alvarasPendentes.toString()} sub="bloqueios a resolver" tone={alvarasPendentes > 0 ? "warning" : "neutral"} />
           <Kpi icon={Activity} label="Em Execução" value={emExecucao.toString()} sub="obras ativas em campo" tone="accent" />
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Top 5 Prioridades */}
           <section className="lg:col-span-2 bg-card border border-border rounded-md shadow-card">
             <header className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <div>
@@ -112,18 +121,17 @@ function Dashboard() {
                         <div className="text-[11px] text-muted-foreground">{o.bairro}</div>
                       </td>
                       <td className="px-2 py-2.5"><MaterialBadge tipo={o.material} /></td>
-                      <td className="px-2 py-2.5 text-right tabular font-mono text-[12px]">{o.dn}</td>
+                      <td className="px-2 py-2.5 text-right tabular font-mono text-[12px]">{o.dn || "—"}</td>
                       <td className="px-2 py-2.5 text-right tabular font-mono">{o.extensaoM.toLocaleString("pt-BR")} m</td>
                       <td className="px-4 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {top5.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma obra prioritária pendente nesta UR.</div>}
+              {top5.length === 0 && !isLoading && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma obra prioritária pendente nesta UR.</div>}
             </div>
           </section>
 
-          {/* Resumo de Metragem por Material */}
           <section className="bg-card border border-border rounded-md shadow-card">
             <header className="px-5 py-3.5 border-b border-border">
               <h2 className="text-sm font-semibold text-foreground">Metragem por Material</h2>
@@ -137,18 +145,14 @@ function Dashboard() {
                   <div key={tipo}>
                     <div className="flex items-center justify-between mb-1.5">
                       <MaterialBadge tipo={tipo} />
-                      <span className="font-mono text-[13px] tabular font-semibold">{m.toLocaleString("pt-BR")} m</span>
+                      <span className="font-mono text-[13px] tabular font-semibold">{Math.round(m).toLocaleString("pt-BR")} m</span>
                     </div>
                     <div className="h-2 rounded-sm bg-muted overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full rounded-sm transition-all",
-                          tipo === "DEFOFO" && "bg-primary",
-                          tipo === "PEAD" && "bg-info",
-                          tipo === "FOFO" && "bg-muted-foreground/60",
-                        )}
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className={cn("h-full rounded-sm transition-all",
+                        tipo === "DEFOFO" && "bg-primary",
+                        tipo === "PEAD" && "bg-info",
+                        tipo === "FOFO" && "bg-muted-foreground/60",
+                      )} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );
@@ -157,7 +161,6 @@ function Dashboard() {
           </section>
         </div>
 
-        {/* URs overview + Necessidade de aquisição */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
           <section className="lg:col-span-2 bg-card border border-border rounded-md shadow-card">
             <header className="px-5 py-3.5 border-b border-border flex items-center justify-between">
@@ -177,13 +180,13 @@ function Dashboard() {
                     <th className="text-left px-2 py-2 font-medium">Gerente</th>
                     <th className="text-right px-2 py-2 font-medium">Obras</th>
                     <th className="text-right px-2 py-2 font-medium">Extensão</th>
-                    <th className="text-right px-2 py-2 font-medium">Em exec.</th>
+                    <th className="text-right px-2 py-2 font-medium">Aguard. alvará</th>
                     <th className="text-right px-4 py-2 font-medium">Críticas</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {urs.map(u => {
-                    const s = urStats(u.code);
+                    const s = urStats(obras, u.code);
                     return (
                       <tr key={u.code} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-2.5">
@@ -195,16 +198,12 @@ function Dashboard() {
                         </td>
                         <td className="px-2 py-2.5 text-muted-foreground">{u.gerente}</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono">{s.obras}</td>
-                        <td className="px-2 py-2.5 text-right tabular font-mono font-semibold">{s.extensaoM.toLocaleString("pt-BR")} m</td>
-                        <td className="px-2 py-2.5 text-right tabular font-mono">{s.emExecucao}</td>
+                        <td className="px-2 py-2.5 text-right tabular font-mono font-semibold">{Math.round(s.extensaoM).toLocaleString("pt-BR")} m</td>
+                        <td className="px-2 py-2.5 text-right tabular font-mono">{s.aguardandoAlvara}</td>
                         <td className="px-4 py-2.5 text-right">
                           {s.criticas > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono bg-destructive-soft text-destructive border border-destructive/20">
-                              {s.criticas}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground font-mono text-[12px]">—</span>
-                          )}
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono bg-destructive-soft text-destructive border border-destructive/20">{s.criticas}</span>
+                          ) : (<span className="text-muted-foreground font-mono text-[12px]">—</span>)}
                         </td>
                       </tr>
                     );
@@ -220,24 +219,20 @@ function Dashboard() {
               <h2 className="text-sm font-semibold text-foreground">Necessidade de aquisição</h2>
             </header>
             <div className="p-3 space-y-1.5 max-h-[320px] overflow-y-auto">
-              {aquisicoes.length === 0 && (
-                <div className="px-3 py-6 text-center text-[13px] text-muted-foreground">
-                  Estoque suficiente para o cronograma.
-                </div>
+              {aquisicoes.length === 0 && !isLoading && (
+                <div className="px-3 py-6 text-center text-[13px] text-muted-foreground">Estoque suficiente para o cronograma.</div>
               )}
               {aquisicoes.map(n => (
-                <div key={n.codigo} className="px-3 py-2.5 rounded border border-border hover:border-border-strong transition-colors">
+                <div key={n.id} className="px-3 py-2.5 rounded border border-border hover:border-border-strong transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-[12px] font-mono font-semibold text-foreground">{n.codigo}</div>
                       <div className="text-[11px] text-muted-foreground truncate">{n.descricao}</div>
                     </div>
-                    <span className="font-mono text-[12px] tabular font-semibold text-destructive shrink-0">
-                      {n.saldo.toLocaleString("pt-BR")} m
-                    </span>
+                    <span className="font-mono text-[12px] tabular font-semibold text-destructive shrink-0">{Math.round(n.saldo).toLocaleString("pt-BR")} {n.unidade}</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-1 font-mono">
-                    Necessário {n.necessario} · estoque {n.estoque}
+                    {n.ur} · Necessário {Math.round(Number(n.quantidade_necessaria))} · estoque {Math.round(Number(n.quantidade_estoque))}
                   </div>
                 </div>
               ))}
@@ -256,25 +251,16 @@ function Dashboard() {
 
 function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "px-3 h-7 rounded text-[12px] font-medium font-mono transition-colors border",
-        active
-          ? "bg-primary text-primary-foreground border-primary"
-          : "bg-surface text-muted-foreground border-border hover:border-border-strong hover:text-foreground",
-      )}
-    >
+    <button onClick={onClick} className={cn("px-3 h-7 rounded text-[12px] font-medium font-mono transition-colors border",
+      active ? "bg-primary text-primary-foreground border-primary"
+      : "bg-surface text-muted-foreground border-border hover:border-border-strong hover:text-foreground")}>
       {children}
     </button>
   );
 }
 
-function Kpi({
-  icon: Icon, label, value, sub, tone = "neutral",
-}: { icon: typeof HardHat; label: string; value: string; sub: string; tone?: "neutral" | "accent" | "warning" }) {
-  const iconCls =
-    tone === "accent" ? "bg-accent-soft text-accent"
+function Kpi({ icon: Icon, label, value, sub, tone = "neutral" }: { icon: typeof HardHat; label: string; value: string; sub: string; tone?: "neutral" | "accent" | "warning" }) {
+  const iconCls = tone === "accent" ? "bg-accent-soft text-accent"
     : tone === "warning" ? "bg-warning-soft text-warning-foreground"
     : "bg-secondary text-secondary-foreground";
   return (
