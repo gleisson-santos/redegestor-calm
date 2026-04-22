@@ -14,7 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      gestao_consolidada: {
+        Row: {
+          codigo: string
+          created_at: string
+          descricao: string
+          id: string
+          umb: number
+          umf: number
+          uml: number
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          descricao: string
+          id?: string
+          umb?: number
+          umf?: number
+          uml?: number
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          umb?: number
+          umf?: number
+          uml?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      materiais: {
+        Row: {
+          codigo: string
+          created_at: string
+          descricao: string
+          dn: number | null
+          id: string
+          quantidade_estoque: number
+          quantidade_necessaria: number
+          tipo: string
+          unidade: string
+          updated_at: string
+          ur: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          descricao: string
+          dn?: number | null
+          id?: string
+          quantidade_estoque?: number
+          quantidade_necessaria?: number
+          tipo: string
+          unidade?: string
+          updated_at?: string
+          ur: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          dn?: number | null
+          id?: string
+          quantidade_estoque?: number
+          quantidade_necessaria?: number
+          tipo?: string
+          unidade?: string
+          updated_at?: string
+          ur?: string
+        }
+        Relationships: []
+      }
+      obras: {
+        Row: {
+          alvara_liberado: boolean | null
+          alvara_necessario: boolean
+          bairro: string
+          created_at: string
+          dn: number | null
+          extensao: number
+          finalidade: string
+          id: string
+          logradouro: string
+          material: string
+          prioridade: number
+          status: string
+          updated_at: string
+          ur: string
+        }
+        Insert: {
+          alvara_liberado?: boolean | null
+          alvara_necessario?: boolean
+          bairro: string
+          created_at?: string
+          dn?: number | null
+          extensao?: number
+          finalidade?: string
+          id?: string
+          logradouro: string
+          material: string
+          prioridade?: number
+          status?: string
+          updated_at?: string
+          ur: string
+        }
+        Update: {
+          alvara_liberado?: boolean | null
+          alvara_necessario?: boolean
+          bairro?: string
+          created_at?: string
+          dn?: number | null
+          extensao?: number
+          finalidade?: string
+          id?: string
+          logradouro?: string
+          material?: string
+          prioridade?: number
+          status?: string
+          updated_at?: string
+          ur?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
