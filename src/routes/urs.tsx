@@ -78,7 +78,7 @@ function URsPage() {
                 <MiniKpi icon={HardHat} value={stats.obras.toString()} label="Obras" />
                 <MiniKpi icon={Ruler} value={`${Math.round(stats.extensaoM).toLocaleString("pt-BR")} m`} label="Extensão" />
                 <MiniKpi icon={Building2} value={stats.aguardandoAlvara.toString()} label="Aguard. alvará" tone="warning" />
-                <MiniKpi icon={AlertTriangle} value={stats.bairros.toString()} label="Bairros" />
+                <MiniKpi icon={MapPin} value={stats.bairros.toString()} label="Bairros" />
               </div>
               <div className="pt-2 border-t border-border">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mb-2.5">Por material</div>
