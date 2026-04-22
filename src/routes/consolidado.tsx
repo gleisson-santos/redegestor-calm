@@ -6,7 +6,8 @@ import {
   type ConsolidadoRow, type ConsolidadoInsert,
 } from "@/data/api";
 import { Download, Plus, Pencil, Trash2, Search, Layers } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Pager } from "@/components/Pager";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
