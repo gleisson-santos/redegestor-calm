@@ -38,8 +38,8 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
-  const obrasQ = useQuery({ queryKey: ["obras"], queryFn: fetchObras });
-  const matQ = useQuery({ queryKey: ["materiais"], queryFn: fetchMateriais });
+  const obrasQ = useQuery({ queryKey: ["obras"], queryFn: fetchObras, staleTime: 60_000 });
+  const matQ = useQuery({ queryKey: ["materiais"], queryFn: fetchMateriais, staleTime: 60_000 });
 
   const obras = obrasQ.data ?? [];
   const materiais = matQ.data ?? [];
