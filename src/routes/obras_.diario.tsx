@@ -316,7 +316,7 @@ function DiarioPage() {
 
 /* -------------------- Card de lançamento -------------------- */
 
-function DiarioCard({ lancamento, onDelete }: { lancamento: import("@/data/diario").DiarioLancamento; onDelete: () => void }) {
+function DiarioCard({ lancamento, onDelete, onEdit }: { lancamento: DiarioLancamento; onDelete: () => void; onEdit: () => void }) {
   const ClimaIcon = lancamento.clima === "chuvoso" ? CloudRain
                   : lancamento.clima === "nublado" ? Cloud : Sun;
   return (
@@ -338,13 +338,22 @@ function DiarioCard({ lancamento, onDelete }: { lancamento: import("@/data/diari
             {lancamento.equipe_tamanho}
           </span>
         </div>
-        <button
-          onClick={onDelete}
-          className="text-muted-foreground hover:text-destructive p-1 rounded"
-          title="Excluir lançamento"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onEdit}
+            className="text-muted-foreground hover:text-accent p-1 rounded"
+            title="Editar lançamento"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="text-muted-foreground hover:text-destructive p-1 rounded"
+            title="Excluir lançamento"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-2 text-[11px]">
