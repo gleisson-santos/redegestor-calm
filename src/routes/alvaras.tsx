@@ -88,7 +88,6 @@ function AlvarasPage() {
                     <span className="text-[13px] flex-1 min-w-[180px]"><span className="font-medium">{o.logradouro}</span> · <span className="text-muted-foreground">{o.bairro}</span></span>
                     <MaterialBadge tipo={o.material} />
                     <AlvaraBadge status={o.alvaraStatus} />
-                    <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider bg-destructive text-destructive-foreground">CRÍTICO</span>
                   </li>
                 ))}
             </ul>
