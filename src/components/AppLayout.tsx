@@ -7,16 +7,21 @@ import {
   Package,
   FileCheck2,
   Layers,
+  BookOpen,
+  ClipboardList,
+  Calculator,
   Search,
   Bell,
   Menu,
   X,
   Plus,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-type NavItem = { to: "/" | "/urs" | "/obras" | "/materiais" | "/consolidado" | "/alvaras"; label: string; icon: typeof LayoutDashboard; exact?: boolean };
+type NavTo = "/" | "/urs" | "/obras" | "/materiais" | "/consolidado" | "/alvaras" | "/encargos" | "/encargos/lancamentos" | "/encargos/medicoes";
+type NavItem = { to: NavTo; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const nav: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/urs", label: "Unidades Regionais", icon: Building2 },
@@ -24,6 +29,12 @@ const nav: NavItem[] = [
   { to: "/materiais", label: "Gestão de Materiais", icon: Package },
   { to: "/consolidado", label: "Consolidado", icon: Layers },
   { to: "/alvaras", label: "Alvarás", icon: FileCheck2 },
+];
+
+const encargosGroup: { to: NavTo; label: string; icon: typeof LayoutDashboard }[] = [
+  { to: "/encargos", label: "Tabela de Preços", icon: BookOpen },
+  { to: "/encargos/lancamentos", label: "Lançamento de Serviços", icon: ClipboardList },
+  { to: "/encargos/medicoes", label: "Medições Mensais", icon: Calculator },
 ];
 
 export function AppLayout({ children }: { children: ReactNode }) {
