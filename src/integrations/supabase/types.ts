@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      caderno_encargos: {
+        Row: {
+          codigo: string
+          created_at: string
+          descricao: string
+          id: string
+          preco_unitario: number
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          descricao: string
+          id?: string
+          preco_unitario?: number
+          unidade?: string
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          preco_unitario?: number
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      execucao_servicos: {
+        Row: {
+          created_at: string
+          data_execucao: string
+          id: string
+          item_encargo_id: string
+          mes_referencia: string
+          obra_id: string
+          quantidade: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_execucao?: string
+          id?: string
+          item_encargo_id: string
+          mes_referencia: string
+          obra_id: string
+          quantidade?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_execucao?: string
+          id?: string
+          item_encargo_id?: string
+          mes_referencia?: string
+          obra_id?: string
+          quantidade?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execucao_servicos_item_encargo_id_fkey"
+            columns: ["item_encargo_id"]
+            isOneToOne: false
+            referencedRelation: "caderno_encargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "execucao_servicos_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gestao_consolidada: {
         Row: {
           codigo: string
@@ -86,6 +164,36 @@ export type Database = {
           unidade?: string
           updated_at?: string
           ur?: string
+        }
+        Relationships: []
+      }
+      medicoes_mensais: {
+        Row: {
+          created_at: string
+          id: string
+          mes_referencia: string
+          status: string
+          updated_at: string
+          ur: string
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mes_referencia: string
+          status?: string
+          updated_at?: string
+          ur: string
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mes_referencia?: string
+          status?: string
+          updated_at?: string
+          ur?: string
+          valor_total?: number
         }
         Relationships: []
       }
