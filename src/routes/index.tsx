@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/components/StatusBadge";
-import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight } from "lucide-react";
+import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
 import {
   fetchObras, fetchMateriais,
   totalExtensao, extensaoPorMaterial, topPrioridades, urStats,
@@ -10,6 +10,10 @@ import {
 import { urs, URCode } from "@/data/mockData";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+  PieChart, Pie, Cell,
+} from "recharts";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -37,11 +41,38 @@ function Dashboard() {
   const totalObras = filtered.length;
   const extensao = totalExtensao(filtered);
   const emExecucao = filtered.filter(o => o.status === "em_execucao").length;
+  const concluidas = filtered.filter(o => o.status === "concluida").length;
+  const extensaoConcluida = filtered.filter(o => o.status === "concluida").reduce((s, o) => s + o.extensaoM, 0);
+  const pctConcluidas = totalObras > 0 ? (concluidas / totalObras) * 100 : 0;
+  const pctExtensaoConcluida = extensao > 0 ? (extensaoConcluida / extensao) * 100 : 0;
   const alvarasPendentes = filtered.filter(o => o.alvaraNecessario && !o.alvaraLiberado).length;
 
   const porMaterial = extensaoPorMaterial(filtered);
-  const maxMaterial = Math.max(porMaterial.DEFOFO, porMaterial.PEAD, porMaterial.FOFO, 1);
   const top5 = topPrioridades(obras, 5, urFilter === "TODAS" ? undefined : urFilter);
+
+  // Dados para gráficos (extensão x material x alvará)
+  const chartMaterialAlvara = useMemo(() => {
+    const tipos: ("DEFOFO" | "PEAD" | "FOFO" | "OUTRO")[] = ["DEFOFO", "PEAD", "FOFO", "OUTRO"];
+    return tipos.map(tipo => {
+      const sub = filtered.filter(o => o.material === tipo);
+      const liberado = sub.filter(o => o.alvaraStatus === "liberado" || o.alvaraStatus === "nao_aplicavel").reduce((s, o) => s + o.extensaoM, 0);
+      const pendente = sub.filter(o => o.alvaraStatus === "pendente" || o.alvaraStatus === "vencido").reduce((s, o) => s + o.extensaoM, 0);
+      return { material: tipo, Liberado: Math.round(liberado), Pendente: Math.round(pendente) };
+    }).filter(d => d.Liberado + d.Pendente > 0);
+  }, [filtered]);
+
+  const chartStatus = useMemo(() => {
+    const buckets: Record<string, { name: string; value: number; color: string }> = {
+      concluida: { name: "Concluída", value: 0, color: "oklch(0.55 0.14 155)" },
+      em_execucao: { name: "Em execução", value: 0, color: "oklch(0.62 0.16 200)" },
+      aguardando_alvara: { name: "Aguard. alvará", value: 0, color: "oklch(0.70 0.15 75)" },
+      liberada: { name: "Liberada", value: 0, color: "oklch(0.60 0.10 240)" },
+      planejada: { name: "Planejada", value: 0, color: "oklch(0.70 0.02 250)" },
+      suspensa: { name: "Suspensa", value: 0, color: "oklch(0.55 0.20 25)" },
+    };
+    filtered.forEach(o => { if (buckets[o.status]) buckets[o.status].value += 1; });
+    return Object.values(buckets).filter(b => b.value > 0);
+  }, [filtered]);
 
   // Aquisições críticas: materiais cuja necessidade > estoque, filtrado por UR
   const aquisicoes = useMemo(() => {
@@ -80,11 +111,12 @@ function Dashboard() {
           ))}
         </section>
 
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
           <Kpi icon={HardHat} label="Total de Obras" value={totalObras.toString()} sub={urFilter === "TODAS" ? "todas as URs" : urFilter} />
           <Kpi icon={Ruler} label="Extensão Total" value={`${Math.round(extensao).toLocaleString("pt-BR")} m`} sub="metros lineares planejados" />
           <Kpi icon={FileCheck2} label="Alvarás Pendentes" value={alvarasPendentes.toString()} sub="bloqueios a resolver" tone={alvarasPendentes > 0 ? "warning" : "neutral"} />
           <Kpi icon={Activity} label="Em Execução" value={emExecucao.toString()} sub="obras ativas em campo" tone="accent" />
+          <ObrasRealizadasCard concluidas={concluidas} totalObras={totalObras} extensaoConcluida={extensaoConcluida} extensaoTotal={extensao} pctObras={pctConcluidas} pctExt={pctExtensaoConcluida} />
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -134,29 +166,52 @@ function Dashboard() {
 
           <section className="bg-card border border-border rounded-md shadow-card">
             <header className="px-5 py-3.5 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">Metragem por Material</h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">Soma da extensão (m) por tipo.</p>
+              <h2 className="text-sm font-semibold text-foreground">Status Operacional</h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Distribuição das obras por situação atual.</p>
             </header>
-            <div className="p-5 space-y-4">
-              {(["DEFOFO", "PEAD", "FOFO"] as const).map(tipo => {
-                const m = porMaterial[tipo];
-                const pct = (m / maxMaterial) * 100;
-                return (
-                  <div key={tipo}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <MaterialBadge tipo={tipo} />
-                      <span className="font-mono text-[13px] tabular font-semibold">{Math.round(m).toLocaleString("pt-BR")} m</span>
-                    </div>
-                    <div className="h-2 rounded-sm bg-muted overflow-hidden">
-                      <div className={cn("h-full rounded-sm transition-all",
-                        tipo === "DEFOFO" && "bg-primary",
-                        tipo === "PEAD" && "bg-info",
-                        tipo === "FOFO" && "bg-muted-foreground/60",
-                      )} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="p-3 h-[260px]">
+              {chartStatus.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-[12px] text-muted-foreground">Sem dados.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={chartStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2}>
+                      {chartStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </section>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+          <section className="lg:col-span-3 bg-card border border-border rounded-md shadow-card">
+            <header className="px-5 py-3.5 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">Extensão por Material × Status do Alvará</h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Metros lineares planejados, agrupados por material, segregando obras com alvará liberado vs. pendente.</p>
+            </header>
+            <div className="p-3 h-[300px]">
+              {chartMaterialAlvara.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-[12px] text-muted-foreground">Sem dados.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartMaterialAlvara} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="material" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 }}
+                      formatter={(v: number) => `${v.toLocaleString("pt-BR")} m`}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="square" />
+                    <Bar dataKey="Liberado" stackId="a" fill="oklch(0.62 0.16 200)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Pendente" stackId="a" fill="oklch(0.70 0.15 75)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </section>
         </div>
@@ -273,6 +328,32 @@ function Kpi({ icon: Icon, label, value, sub, tone = "neutral" }: { icon: typeof
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">{label}</div>
       <div className="text-2xl font-semibold tabular tracking-tight text-foreground mt-0.5">{value}</div>
       <div className="text-[11px] text-muted-foreground mt-1">{sub}</div>
+    </div>
+  );
+}
+
+function ObrasRealizadasCard({ concluidas, totalObras, extensaoConcluida, pctObras, pctExt }: {
+  concluidas: number; totalObras: number; extensaoConcluida: number; extensaoTotal: number; pctObras: number; pctExt: number;
+}) {
+  return (
+    <div className="bg-card border border-success/30 rounded-md p-4 shadow-card relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-success-soft/40 to-transparent pointer-events-none" />
+      <div className="relative">
+        <div className="flex items-start justify-between mb-3">
+          <div className="h-9 w-9 rounded flex items-center justify-center bg-success-soft text-success">
+            <CheckCircle2 className="h-[18px] w-[18px]" />
+          </div>
+          <span className="text-[11px] font-mono font-semibold text-success tabular">{pctObras.toFixed(1)}%</span>
+        </div>
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Obras Realizadas</div>
+        <div className="text-2xl font-semibold tabular tracking-tight text-foreground mt-0.5">{concluidas}<span className="text-muted-foreground text-base font-normal"> / {totalObras}</span></div>
+        <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className="h-full bg-success transition-all" style={{ width: `${Math.min(100, pctObras)}%` }} />
+        </div>
+        <div className="text-[11px] text-muted-foreground mt-2 font-mono">
+          {Math.round(extensaoConcluida).toLocaleString("pt-BR")} m executados · {pctExt.toFixed(1)}% da extensão
+        </div>
+      </div>
     </div>
   );
 }

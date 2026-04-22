@@ -32,6 +32,9 @@ export interface Obra {
   status: StatusObra;
   alvaraStatus: AlvaraStatus;
   rawStatus: string;
+  dataInicio: string | null;   // ISO date YYYY-MM-DD
+  dataTermino: string | null;  // ISO date YYYY-MM-DD
+  observacoes: string | null;
 }
 
 /* --------------------------- Mappers --------------------------- */
@@ -42,10 +45,32 @@ export function toObra(r: ObraRow): Obra {
     : r.alvara_liberado === true
       ? "liberado"
       : "pendente";
-  const status: StatusObra =
-    r.alvara_necessario && r.alvara_liberado !== true
-      ? "aguardando_alvara"
-      : "liberada";
+
+  // Acesso defensivo aos campos novos (data_inicio, data_termino, observacoes)
+  // que podem não estar no tipo Database até o Supabase regerar os types.
+  const extra = r as ObraRow & {
+    data_inicio?: string | null;
+    data_termino?: string | null;
+    observacoes?: string | null;
+  };
+  const dataInicio = extra.data_inicio ?? null;
+  const dataTermino = extra.data_termino ?? null;
+  const hoje = new Date().toISOString().slice(0, 10);
+
+  // Status derivado: prioriza datas reais quando preenchidas, depois alvará
+  let status: StatusObra;
+  if (dataTermino && dataTermino <= hoje) {
+    status = "concluida";
+  } else if (dataInicio && dataInicio <= hoje && (!dataTermino || dataTermino > hoje)) {
+    status = "em_execucao";
+  } else if (r.alvara_necessario && r.alvara_liberado !== true) {
+    status = "aguardando_alvara";
+  } else if (dataInicio && dataInicio > hoje) {
+    status = "planejada";
+  } else {
+    status = "liberada";
+  }
+
   return {
     id: r.id,
     codigo: `OBR-${r.id.slice(0, 8).toUpperCase()}`,
@@ -62,6 +87,9 @@ export function toObra(r: ObraRow): Obra {
     status,
     alvaraStatus,
     rawStatus: r.status,
+    dataInicio,
+    dataTermino,
+    observacoes: extra.observacoes ?? null,
   };
 }
 
@@ -170,6 +198,12 @@ export function urStats(list: Obra[], code: URCode) {
     concluidas: sub.filter(o => o.status === "concluida").length,
     criticas: sub.filter(o => o.prioridade <= 2 && (o.alvaraStatus === "pendente" || o.alvaraStatus === "vencido")).length,
   };
+}
+
+/** Atualização parcial de uma obra (usada em edição inline) */
+export async function patchObra(id: string, patch: Partial<ObraInsert>) {
+  const { error } = await supabase.from("obras").update(patch).eq("id", id);
+  if (error) throw error;
 }
 
 export function topPrioridades(list: Obra[], n = 5, urFilter?: URCode): Obra[] {
