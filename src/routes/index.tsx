@@ -55,6 +55,13 @@ function Dashboard() {
   const alvarasPendentes = filtered.filter(o => o.alvaraNecessario && !o.alvaraLiberado).length;
 
   const porMaterial = extensaoPorMaterial(filtered);
+  const extPorTipo = useMemo(() => {
+    const tipos: ("DEFOFO" | "FOFO" | "PEAD")[] = ["DEFOFO", "FOFO", "PEAD"];
+    return tipos.map(t => ({
+      tipo: t,
+      metros: filtered.filter(o => o.material === t).reduce((s, o) => s + o.extensaoM, 0),
+    }));
+  }, [filtered]);
   const topObras = useMemo(() => topPrioridadesPorUR(obras, 3, urFilter), [obras, urFilter]);
   const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
 
@@ -122,7 +129,7 @@ function Dashboard() {
 
         <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
           <Kpi icon={HardHat} label="Total de Obras" value={totalObras.toString()} sub={urFilter === "TODAS" ? "todas as URs" : urFilter} />
-          <Kpi icon={Ruler} label="Extensão Total" value={`${Math.round(extensao).toLocaleString("pt-BR")} m`} sub="metros lineares planejados" />
+          <ExtensaoCard total={extensao} porTipo={extPorTipo} />
           <Kpi icon={FileCheck2} label="Alvarás Pendentes" value={alvarasPendentes.toString()} sub="bloqueios a resolver" tone={alvarasPendentes > 0 ? "warning" : "neutral"} />
           <Kpi icon={Activity} label="Em Execução" value={emExecucao.toString()} sub="obras ativas em campo" tone="accent" />
           <ObrasRealizadasCard concluidas={concluidas} totalObras={totalObras} extensaoConcluida={extensaoConcluida} extensaoTotal={extensao} pctObras={pctConcluidas} pctExt={pctExtensaoConcluida} />
@@ -409,6 +416,46 @@ function ObrasRealizadasCard({ concluidas, totalObras, extensaoConcluida, pctObr
         <div className="text-[11px] text-muted-foreground mt-2 font-mono">
           {Math.round(extensaoConcluida).toLocaleString("pt-BR")} m executados · {pctExt.toFixed(1)}% da extensão
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ExtensaoCard({ total, porTipo }: { total: number; porTipo: { tipo: "DEFOFO" | "FOFO" | "PEAD"; metros: number }[] }) {
+  const tipoColor: Record<string, string> = {
+    DEFOFO: "oklch(0.62 0.16 200)",
+    FOFO: "oklch(0.55 0.14 155)",
+    PEAD: "oklch(0.70 0.15 75)",
+  };
+  return (
+    <div className="bg-card border border-border rounded-md p-4 shadow-card">
+      <div className="flex items-start justify-between mb-3">
+        <div className="h-9 w-9 rounded flex items-center justify-center bg-secondary text-secondary-foreground">
+          <Ruler className="h-[18px] w-[18px]" />
+        </div>
+      </div>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Extensão Total</div>
+      <div className="text-2xl font-semibold tabular tracking-tight text-foreground mt-0.5">
+        {Math.round(total).toLocaleString("pt-BR")} <span className="text-base font-normal text-muted-foreground">m</span>
+      </div>
+      <div className="mt-2.5 space-y-1.5">
+        {porTipo.map(t => {
+          const pct = total > 0 ? (t.metros / total) * 100 : 0;
+          return (
+            <div key={t.tipo}>
+              <div className="flex items-center justify-between text-[11px] font-mono">
+                <span className="font-semibold text-foreground">{t.tipo}</span>
+                <span className="tabular text-muted-foreground">
+                  {Math.round(t.metros).toLocaleString("pt-BR")} m
+                  <span className="ml-1 text-[10px]">({pct.toFixed(1)}%)</span>
+                </span>
+              </div>
+              <div className="mt-0.5 h-1 rounded-full bg-muted overflow-hidden">
+                <div className="h-full transition-all" style={{ width: `${Math.min(100, pct)}%`, background: tipoColor[t.tipo] }} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
