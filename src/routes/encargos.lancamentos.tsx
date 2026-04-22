@@ -96,7 +96,7 @@ function LancamentosPage() {
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-8 py-6 max-w-[1400px] mx-auto">
+      <div className="px-4 lg:px-8 py-6">
         <header className="pb-5 border-b border-border mb-5">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mb-1">Caderno de Encargos</div>
           <h1 className="text-2xl font-semibold tracking-tight">Lançamento de Serviços</h1>
