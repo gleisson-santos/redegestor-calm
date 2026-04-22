@@ -52,15 +52,6 @@ function Dashboard() {
   const topObras = useMemo(() => topPrioridadesPorUR(obras, 3, urFilter), [obras, urFilter]);
   const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
 
-  const qc = useQueryClient();
-  const executarMut = useMutation({
-    mutationFn: (id: string) => marcarServicoExecutado(id),
-    onSuccess: () => {
-      toast.success("Serviço marcado como executado");
-      qc.invalidateQueries({ queryKey: ["obras"] });
-    },
-    onError: (e: Error) => toast.error(e.message ?? "Erro ao concluir obra"),
-  });
 
   // Dados para gráficos (extensão x material x alvará)
   const chartMaterialAlvara = useMemo(() => {
