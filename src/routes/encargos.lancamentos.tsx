@@ -46,12 +46,17 @@ function LancamentosPage() {
   const obraSelecionada = obras.find(o => o.id === obraId);
   const itemSelecionado = itens.find(i => i.id === itemId);
 
+  const obrasElegiveis = useMemo(
+    () => obras.filter(o => o.status === "em_execucao" || o.status === "concluida"),
+    [obras],
+  );
+
   const obraOptions = useMemo(() => {
     const q = obraSearch.trim().toLowerCase();
-    return obras
+    return obrasElegiveis
       .filter(o => !q || `${o.bairro} ${o.logradouro} ${o.ur} ${o.codigo}`.toLowerCase().includes(q))
       .slice(0, 50);
-  }, [obras, obraSearch]);
+  }, [obrasElegiveis, obraSearch]);
 
   const insertMut = useMutation({
     mutationFn: (v: ExecucaoServicoInsert) => insertExecucao(v),
@@ -115,10 +120,12 @@ function LancamentosPage() {
               </div>
             </div>
             <div>
-              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Obra selecionada</Label>
+              <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">
+                Obra selecionada <span className="text-muted-foreground/70 normal-case">(em execução / concluída)</span>
+              </Label>
               <select value={obraId} onChange={e => setObraId(e.target.value)}
                 className="mt-1.5 h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">— escolha —</option>
+                <option value="">— escolha ({obrasElegiveis.length} disponíveis) —</option>
                 {obraOptions.map(o => (
                   <option key={o.id} value={o.id}>{o.ur} · {o.bairro} — {o.logradouro}</option>
                 ))}
