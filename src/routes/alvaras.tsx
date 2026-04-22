@@ -5,8 +5,9 @@ import { StatusBadge, AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/comp
 import { fetchObras, type Obra } from "@/data/api";
 import { urs, URCode, AlvaraStatus } from "@/data/mockData";
 import { FileCheck2, AlertOctagon, Clock, ShieldCheck, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Pager } from "@/components/Pager";
 
 export const Route = createFileRoute("/alvaras")({
   head: () => ({
