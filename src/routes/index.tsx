@@ -129,7 +129,7 @@ function Dashboard() {
 
         <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
           <Kpi icon={HardHat} label="Total de Obras" value={totalObras.toString()} sub={urFilter === "TODAS" ? "todas as URs" : urFilter} />
-          <Kpi icon={Ruler} label="Extensão Total" value={`${Math.round(extensao).toLocaleString("pt-BR")} m`} sub="metros lineares planejados" />
+          <ExtensaoCard total={extensao} porTipo={extPorTipo} />
           <Kpi icon={FileCheck2} label="Alvarás Pendentes" value={alvarasPendentes.toString()} sub="bloqueios a resolver" tone={alvarasPendentes > 0 ? "warning" : "neutral"} />
           <Kpi icon={Activity} label="Em Execução" value={emExecucao.toString()} sub="obras ativas em campo" tone="accent" />
           <ObrasRealizadasCard concluidas={concluidas} totalObras={totalObras} extensaoConcluida={extensaoConcluida} extensaoTotal={extensao} pctObras={pctConcluidas} pctExt={pctExtensaoConcluida} />
