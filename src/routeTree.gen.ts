@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsuariosRouteImport } from './routes/usuarios'
 import { Route as UrsRouteImport } from './routes/urs'
 import { Route as ObrasRouteImport } from './routes/obras'
 import { Route as MateriaisRouteImport } from './routes/materiais'
@@ -24,6 +25,11 @@ import { Route as EncargosRelatoriosRouteImport } from './routes/encargos.relato
 import { Route as EncargosMedicoesRouteImport } from './routes/encargos.medicoes'
 import { Route as EncargosLancamentosRouteImport } from './routes/encargos.lancamentos'
 
+const UsuariosRoute = UsuariosRouteImport.update({
+  id: '/usuarios',
+  path: '/usuarios',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UrsRoute = UrsRouteImport.update({
   id: '/urs',
   path: '/urs',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/usuarios': typeof UsuariosRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/usuarios': typeof UsuariosRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/materiais': typeof MateriaisRoute
   '/obras': typeof ObrasRoute
   '/urs': typeof UrsRoute
+  '/usuarios': typeof UsuariosRoute
   '/encargos/lancamentos': typeof EncargosLancamentosRoute
   '/encargos/medicoes': typeof EncargosMedicoesRoute
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/materiais'
     | '/obras'
     | '/urs'
+    | '/usuarios'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/materiais'
     | '/obras'
     | '/urs'
+    | '/usuarios'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/materiais'
     | '/obras'
     | '/urs'
+    | '/usuarios'
     | '/encargos/lancamentos'
     | '/encargos/medicoes'
     | '/encargos/relatorios'
@@ -203,11 +215,19 @@ export interface RootRouteChildren {
   MateriaisRoute: typeof MateriaisRoute
   ObrasRoute: typeof ObrasRoute
   UrsRoute: typeof UrsRoute
+  UsuariosRoute: typeof UsuariosRoute
   ObrasDiarioRoute: typeof ObrasDiarioRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/usuarios': {
+      id: '/usuarios'
+      path: '/usuarios'
+      fullPath: '/usuarios'
+      preLoaderRoute: typeof UsuariosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/urs': {
       id: '/urs'
       path: '/urs'
@@ -337,8 +357,18 @@ const rootRouteChildren: RootRouteChildren = {
   MateriaisRoute: MateriaisRoute,
   ObrasRoute: ObrasRoute,
   UrsRoute: UrsRoute,
+  UsuariosRoute: UsuariosRoute,
   ObrasDiarioRoute: ObrasDiarioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
