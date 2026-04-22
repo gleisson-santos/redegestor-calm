@@ -1,13 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
-import { StatusBadge } from "@/components/StatusBadge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { StatusBadge, AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/components/StatusBadge";
 import {
-  FileText, Boxes, AlertTriangle, MapPin, ArrowUpRight,
-  CheckCircle2, Calendar, Building2, Sparkles,
+  HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight,
 } from "lucide-react";
-import { contracts, locations, getAllMaterials, formatMes, mesesPorAno, urs, urStats, URCode } from "@/data/mockData";
+import {
+  obras, urs, urStats, totalExtensao, extensaoPorMaterial, topPrioridades,
+  necessidadeTubos, URCode,
+} from "@/data/mockData";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -15,294 +15,278 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Dashboard — RedeGestor" },
-      { name: "description", content: "Painel sereno de contratos por UR, materiais e cronogramas." },
+      { name: "description", content: "Painel gerencial de obras de extensão e substituição de redes por Unidade Regional." },
     ],
   }),
   component: Dashboard,
 });
 
 function Dashboard() {
-  const [urFilter, setUrFilter] = useState<URCode | "todas">("todas");
-  const filteredContracts = urFilter === "todas" ? contracts : contracts.filter(c => c.ur === urFilter);
+  const [urFilter, setUrFilter] = useState<URCode | "TODAS">("TODAS");
+  const filtered = useMemo(
+    () => (urFilter === "TODAS" ? obras : obras.filter(o => o.ur === urFilter)),
+    [urFilter],
+  );
 
-  const ativos = filteredContracts.filter(c => c.status === "ativo").length;
-  const totalLocais = (urFilter === "todas" ? locations : locations.filter(l => l.ur === urFilter))
-    .filter(l => l.status !== "concluido").length;
-  const materiais = useMemo(() => getAllMaterials(), []);
-  const baixoEstoque = materiais.filter(m => m.estoqueAtual < m.estoqueMinimo);
+  const totalObras = filtered.length;
+  const extensao = totalExtensao(filtered);
+  const emExecucao = filtered.filter(o => o.status === "em_execucao").length;
+  const alvarasPendentes = filtered.filter(
+    o => o.alvaraNecessidade === "sim" && (o.alvaraStatus === "pendente" || o.alvaraStatus === "vencido"),
+  ).length;
 
-  // Demand next 6 months from May 2026
-  const proxMeses = mesesPorAno["2026"].slice(0, 6);
-  const demandaPorMes = proxMeses.map(m => ({
-    mes: m,
-    total: filteredContracts.reduce((s, c) =>
-      s + c.materiais.reduce((ss, mat) => ss + (mat.cronograma[m] ?? 0), 0), 0),
-  }));
-  const maxD = Math.max(...demandaPorMes.map(d => d.total), 1);
+  const porMaterial = extensaoPorMaterial(filtered);
+  const maxMaterial = Math.max(porMaterial.DEFOFO, porMaterial.PEAD, porMaterial.FOFO, 1);
+
+  const top5 = topPrioridades(5, urFilter === "TODAS" ? undefined : urFilter);
+
+  const necessidades = necessidadeTubos(filtered).filter(n => n.necessario > 0);
+  const aquisicoes = necessidades.filter(n => n.saldo < 0);
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-8 py-8 lg:py-10 max-w-[1400px] mx-auto space-y-8">
-        {/* Hero */}
-        <section className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
-          <div className="space-y-2.5">
-            <div className="text-sm text-muted-foreground inline-flex items-center gap-2">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
-              Bem-vinda de volta, Marina
-            </div>
-            <h1 className="text-display text-foreground">Tudo sob controle hoje.</h1>
-            <p className="text-muted-foreground max-w-xl">
-              <span className="text-foreground font-medium">{ativos} contratos ativos</span> e{" "}
-              <span className="text-foreground font-medium">{baixoEstoque.length} alertas</span> de estoque para revisar.
+      <div className="px-4 lg:px-8 py-6 max-w-[1400px] mx-auto">
+        {/* Header */}
+        <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6 pb-5 border-b border-border">
+          <div>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mb-1">Painel gerencial</div>
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight">Consolidação de Frentes de Serviço</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Controle operacional de obras, materiais técnicos e alvarás por Unidade Regional.
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Link to="/urs"><Button variant="outline" className="gap-2"><Building2 className="h-4 w-4" /> Explorar por UR</Button></Link>
-            <Link to="/contratos"><Button className="gap-2 shadow-soft">Novo cronograma <ArrowUpRight className="h-4 w-4" /></Button></Link>
+          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+            <span className="font-mono">Atualizado · {new Date().toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
           </div>
-        </section>
+        </header>
 
-        {/* UR filter pills */}
-        <section className="flex items-center gap-2 flex-wrap p-1.5 rounded-2xl bg-surface border border-border/60 w-fit shadow-soft">
-          <button
-            onClick={() => setUrFilter("todas")}
-            className={cn(
-              "px-4 h-9 rounded-xl text-sm font-medium calm-transition",
-              urFilter === "todas" ? "bg-primary text-primary-foreground shadow-soft" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Todas as URs
-          </button>
+        {/* UR filter */}
+        <section className="flex items-center gap-1.5 flex-wrap mb-6">
+          <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mr-2">Filtrar por UR:</span>
+          <FilterPill active={urFilter === "TODAS"} onClick={() => setUrFilter("TODAS")}>Todas</FilterPill>
           {urs.map(u => (
-            <button
-              key={u.code}
-              onClick={() => setUrFilter(u.code)}
-              className={cn(
-                "px-3 h-9 rounded-xl text-sm font-medium calm-transition inline-flex items-center gap-1.5",
-                urFilter === u.code ? "bg-primary text-primary-foreground shadow-soft" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ background: u.cor }} />
-              {u.code}
-            </button>
+            <FilterPill key={u.code} active={urFilter === u.code} onClick={() => setUrFilter(u.code)}>{u.code}</FilterPill>
           ))}
         </section>
 
         {/* KPI cards */}
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KpiCard icon={FileText} label="Contratos ativos" value={ativos} hint={`${filteredContracts.length} no total`} tone="primary" />
-          <KpiCard icon={Building2} label="URs operando" value={urs.length} hint="cobertura completa" tone="accent" />
-          <KpiCard icon={AlertTriangle} label="Estoque baixo" value={baixoEstoque.length} hint="ações sugeridas" tone="warning" />
-          <KpiCard icon={MapPin} label="Locais ativos" value={totalLocais} hint="serviços em campo" tone="info" />
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <Kpi icon={HardHat} label="Total de Obras" value={totalObras.toString()} sub={`${urFilter === "TODAS" ? "todas as URs" : urFilter}`} />
+          <Kpi icon={Ruler} label="Extensão Total" value={`${extensao.toLocaleString("pt-BR")} m`} sub="metros lineares planejados" />
+          <Kpi icon={FileCheck2} label="Alvarás Pendentes" value={alvarasPendentes.toString()} sub="bloqueios a resolver" tone={alvarasPendentes > 0 ? "warning" : "neutral"} />
+          <Kpi icon={Activity} label="Em Execução" value={emExecucao.toString()} sub="obras ativas em campo" tone="accent" />
         </section>
 
-        {/* UR overview + stock alerts */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 border-border/60 shadow-card">
-            <CardHeader className="flex flex-row items-start justify-between">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Top 5 Prioridades */}
+          <section className="lg:col-span-2 bg-card border border-border rounded-md shadow-card">
+            <header className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Total de projetos por UR</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">Distribuição da carteira atual.</p>
+                <h2 className="text-sm font-semibold text-foreground">Top 5 Prioridades — não iniciadas</h2>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Obras com menor ordem de prioridade aguardando início.</p>
               </div>
-              <Link to="/urs" className="text-sm text-primary font-medium inline-flex items-center gap-1 hover:gap-1.5 calm-transition">
-                Ver detalhes <ArrowUpRight className="h-3.5 w-3.5" />
+              <Link to="/obras" className="text-[12px] text-accent font-medium inline-flex items-center gap-1 hover:underline">
+                Ver todas <ArrowRight className="h-3 w-3" />
               </Link>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {urs.map(u => {
-                  const s = urStats(u.code);
-                  const max = Math.max(...urs.map(uu => urStats(uu.code).contratos), 1);
-                  return (
-                    <Link
-                      key={u.code}
-                      to="/urs"
-                      className="block group"
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <div className="flex items-center gap-2.5">
-                          <span className="h-2.5 w-2.5 rounded-full" style={{ background: u.cor }} />
-                          <span className="text-sm font-medium">{u.code} — {u.nome}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground tabular-nums">
-                          <span className="text-foreground font-semibold">{s.contratos}</span> contrato(s) · {s.totalMateriais} itens
-                        </span>
-                      </div>
-                      <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full calm-transition group-hover:opacity-90"
-                          style={{ width: `${(s.contratos / max) * 100}%`, background: u.cor }}
-                        />
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+            </header>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-medium">Pri</th>
+                    <th className="text-left px-2 py-2 font-medium">UR</th>
+                    <th className="text-left px-2 py-2 font-medium">Logradouro</th>
+                    <th className="text-left px-2 py-2 font-medium">Material</th>
+                    <th className="text-right px-2 py-2 font-medium">DN</th>
+                    <th className="text-right px-2 py-2 font-medium">Extensão</th>
+                    <th className="text-left px-4 py-2 font-medium">Alvará</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {top5.map(o => (
+                    <tr key={o.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-2.5"><PrioridadeBadge prioridade={o.prioridade} /></td>
+                      <td className="px-2 py-2.5 font-mono text-[12px] text-muted-foreground">{o.ur}</td>
+                      <td className="px-2 py-2.5">
+                        <div className="font-medium text-foreground truncate max-w-[280px]">{o.logradouro}</div>
+                        <div className="text-[11px] text-muted-foreground">{o.bairro}</div>
+                      </td>
+                      <td className="px-2 py-2.5"><MaterialBadge tipo={o.material} /></td>
+                      <td className="px-2 py-2.5 text-right tabular font-mono text-[12px]">{o.dn}</td>
+                      <td className="px-2 py-2.5 text-right tabular font-mono">{o.extensaoM.toLocaleString("pt-BR")} m</td>
+                      <td className="px-4 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {top5.length === 0 && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma obra prioritária pendente nesta UR.</div>}
+            </div>
+          </section>
 
-          <Card className="border-border/60 shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-warning-foreground" />
-                Atenção ao estoque
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">Adicione antes que afete cronogramas.</p>
-            </CardHeader>
-            <CardContent className="space-y-2.5">
-              {baixoEstoque.slice(0, 4).map(m => (
-                <div key={m.codigo} className="flex items-start justify-between gap-3 p-3 rounded-xl bg-warning-soft/40 border border-warning/20">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{m.descricao}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{m.codigo} · mín {m.estoqueMinimo} {m.umb}</div>
+          {/* Resumo de Metragem por Material */}
+          <section className="bg-card border border-border rounded-md shadow-card">
+            <header className="px-5 py-3.5 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">Metragem por Material</h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Soma da extensão (m) por tipo.</p>
+            </header>
+            <div className="p-5 space-y-4">
+              {(["DEFOFO", "PEAD", "FOFO"] as const).map(tipo => {
+                const m = porMaterial[tipo];
+                const pct = (m / maxMaterial) * 100;
+                return (
+                  <div key={tipo}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <MaterialBadge tipo={tipo} />
+                      <span className="font-mono text-[13px] tabular font-semibold">{m.toLocaleString("pt-BR")} m</span>
+                    </div>
+                    <div className="h-2 rounded-sm bg-muted overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-sm transition-all",
+                          tipo === "DEFOFO" && "bg-primary",
+                          tipo === "PEAD" && "bg-info",
+                          tipo === "FOFO" && "bg-muted-foreground/60",
+                        )}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <div className="text-sm font-semibold text-warning-foreground tabular-nums">{m.estoqueAtual}</div>
-                    <div className="text-[10px] text-muted-foreground">{m.umb}</div>
-                  </div>
-                </div>
-              ))}
-              {baixoEstoque.length === 0 && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
-                  <CheckCircle2 className="h-4 w-4 text-accent" /> Nenhum alerta — bom trabalho.
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        {/* URs overview + Necessidade de aquisição */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+          <section className="lg:col-span-2 bg-card border border-border rounded-md shadow-card">
+            <header className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Carteira por Unidade Regional</h2>
+                <p className="text-[12px] text-muted-foreground mt-0.5">Distribuição operacional UMB · UML · UMF.</p>
+              </div>
+              <Link to="/urs" className="text-[12px] text-accent font-medium inline-flex items-center gap-1 hover:underline">
+                Detalhar <ArrowRight className="h-3 w-3" />
+              </Link>
+            </header>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-4 py-2 font-medium">UR</th>
+                    <th className="text-left px-2 py-2 font-medium">Gerente</th>
+                    <th className="text-right px-2 py-2 font-medium">Obras</th>
+                    <th className="text-right px-2 py-2 font-medium">Extensão</th>
+                    <th className="text-right px-2 py-2 font-medium">Em exec.</th>
+                    <th className="text-right px-4 py-2 font-medium">Críticas</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {urs.map(u => {
+                    const s = urStats(u.code);
+                    return (
+                      <tr key={u.code} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full" style={{ background: u.cor }} />
+                            <span className="font-mono font-semibold">{u.code}</span>
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">{u.cidade}</div>
+                        </td>
+                        <td className="px-2 py-2.5 text-muted-foreground">{u.gerente}</td>
+                        <td className="px-2 py-2.5 text-right tabular font-mono">{s.obras}</td>
+                        <td className="px-2 py-2.5 text-right tabular font-mono font-semibold">{s.extensaoM.toLocaleString("pt-BR")} m</td>
+                        <td className="px-2 py-2.5 text-right tabular font-mono">{s.emExecucao}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          {s.criticas > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono bg-destructive-soft text-destructive border border-destructive/20">
+                              {s.criticas}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground font-mono text-[12px]">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="bg-card border border-border rounded-md shadow-card">
+            <header className="px-5 py-3.5 border-b border-border flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning-foreground" />
+              <h2 className="text-sm font-semibold text-foreground">Necessidade de aquisição</h2>
+            </header>
+            <div className="p-3 space-y-1.5 max-h-[320px] overflow-y-auto">
+              {aquisicoes.length === 0 && (
+                <div className="px-3 py-6 text-center text-[13px] text-muted-foreground">
+                  Estoque suficiente para o cronograma.
                 </div>
               )}
-              <Link to="/estoque" className="text-sm text-primary font-medium inline-flex items-center gap-1 hover:gap-1.5 calm-transition pt-1">
-                Ver todo o estoque <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Demand chart + locations */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 border-border/60 shadow-card">
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div>
-                <CardTitle className="text-lg">Demanda de materiais</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Próximos 6 meses · {urFilter === "todas" ? "todas as URs" : urFilter}
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-end gap-3 h-44 pt-4">
-                {demandaPorMes.map(d => (
-                  <div key={d.mes} className="flex-1 flex flex-col items-center gap-2 group">
-                    <div className="text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100 calm-transition tabular-nums">
-                      {d.total}
+              {aquisicoes.map(n => (
+                <div key={n.codigo} className="px-3 py-2.5 rounded border border-border hover:border-border-strong transition-colors">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[12px] font-mono font-semibold text-foreground">{n.codigo}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{n.descricao}</div>
                     </div>
-                    <div
-                      className="w-full rounded-t-md gradient-primary group-hover:opacity-90 calm-transition"
-                      style={{ height: `${(d.total / maxD) * 100}%`, minHeight: 8, opacity: 0.85 }}
-                    />
-                    <div className="text-[11px] text-muted-foreground">{formatMes(d.mes)}</div>
+                    <span className="font-mono text-[12px] tabular font-semibold text-destructive shrink-0">
+                      {n.saldo.toLocaleString("pt-BR")} m
+                    </span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/60 shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" />
-                Locais em campo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {locations.filter(l => l.status === "em_andamento").slice(0, 4).map(l => (
-                <div key={l.id} className="flex items-start gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-accent-soft flex items-center justify-center shrink-0 mt-0.5">
-                    <MapPin className="h-4 w-4 text-accent" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium truncate">{l.nome}</div>
-                    <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
-                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-primary-soft text-primary">{l.ur}</span>
-                      <Calendar className="h-3 w-3" /> {new Date(l.data).toLocaleDateString("pt-BR")}
-                    </div>
+                  <div className="text-[10px] text-muted-foreground mt-1 font-mono">
+                    Necessário {n.necessario} · estoque {n.estoque}
                   </div>
                 </div>
               ))}
-              <Link to="/locais" className="text-sm text-primary font-medium inline-flex items-center gap-1 hover:gap-1.5 calm-transition pt-1">
-                Abrir mapa <ArrowUpRight className="h-3.5 w-3.5" />
-              </Link>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Recent contracts */}
-        <Card className="border-border/60 shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Contratos em destaque</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">Atualizações recentes do portfólio.</p>
             </div>
-            <Link to="/contratos" className="text-sm text-primary font-medium">Ver todos</Link>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {filteredContracts.slice(0, 4).map(c => (
-              <Link
-                key={c.id}
-                to="/contratos/$contractId"
-                params={{ contractId: c.id }}
-                className="flex items-center gap-4 p-3 rounded-xl hover:bg-muted/40 calm-transition group"
-              >
-                <div className="h-10 w-10 rounded-xl bg-primary-soft flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm">{c.numero}</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-primary-soft text-primary">{c.ur}</span>
-                    <StatusBadge status={c.status} />
-                  </div>
-                  <div className="text-sm text-muted-foreground truncate mt-0.5">{c.titulo}</div>
-                </div>
-                <div className="hidden sm:block text-right shrink-0">
-                  <div className="text-xs text-muted-foreground mb-1">Progresso</div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-24 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-primary rounded-full calm-transition" style={{ width: `${c.progresso}%` }} />
-                    </div>
-                    <span className="text-xs font-medium w-8 text-right tabular-nums">{c.progresso}%</span>
-                  </div>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5 calm-transition" />
+            <div className="px-5 py-3 border-t border-border">
+              <Link to="/materiais" className="text-[12px] text-accent font-medium inline-flex items-center gap-1 hover:underline">
+                Abrir gestão de materiais <ArrowRight className="h-3 w-3" />
               </Link>
-            ))}
-          </CardContent>
-        </Card>
+            </div>
+          </section>
+        </div>
       </div>
     </AppLayout>
   );
 }
 
-function KpiCard({
-  icon: Icon, label, value, hint, tone,
-}: {
-  icon: typeof FileText; label: string; value: number | string; hint: string;
-  tone: "primary" | "accent" | "warning" | "info";
-}) {
-  const tones = {
-    primary: "bg-primary-soft text-primary",
-    accent: "bg-accent-soft text-accent",
-    warning: "bg-warning-soft text-warning-foreground",
-    info: "bg-info-soft text-info",
-  };
+function FilterPill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <Card className="border-border/60 shadow-soft hover:shadow-card hover:-translate-y-0.5 calm-transition">
-      <CardContent className="p-5">
-        <div className={cn("h-11 w-11 rounded-xl flex items-center justify-center", tones[tone])}>
-          <Icon className="h-5 w-5" />
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-3 h-7 rounded text-[12px] font-medium font-mono transition-colors border",
+        active
+          ? "bg-primary text-primary-foreground border-primary"
+          : "bg-surface text-muted-foreground border-border hover:border-border-strong hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Kpi({
+  icon: Icon, label, value, sub, tone = "neutral",
+}: { icon: typeof HardHat; label: string; value: string; sub: string; tone?: "neutral" | "accent" | "warning" }) {
+  const iconCls =
+    tone === "accent" ? "bg-accent-soft text-accent"
+    : tone === "warning" ? "bg-warning-soft text-warning-foreground"
+    : "bg-secondary text-secondary-foreground";
+  return (
+    <div className="bg-card border border-border rounded-md p-4 shadow-card">
+      <div className="flex items-start justify-between mb-3">
+        <div className={cn("h-9 w-9 rounded flex items-center justify-center", iconCls)}>
+          <Icon className="h-[18px] w-[18px]" />
         </div>
-        <div className="mt-4">
-          <div className="text-3xl font-semibold tracking-tight tabular-nums">{value}</div>
-          <div className="text-sm text-muted-foreground mt-1">{label}</div>
-          <div className="text-xs text-muted-foreground/70 mt-0.5">{hint}</div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">{label}</div>
+      <div className="text-2xl font-semibold tabular tracking-tight text-foreground mt-0.5">{value}</div>
+      <div className="text-[11px] text-muted-foreground mt-1">{sub}</div>
+    </div>
   );
 }
