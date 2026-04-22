@@ -12,8 +12,8 @@ import { urs, URCode } from "@/data/mockData";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
-  PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+  PieChart, Pie, Cell, AreaChart, Area,
 } from "recharts";
 
 /** Formata uma data ISO (YYYY-MM-DD) sem aplicar timezone (evita "voltar 1 dia"). */
