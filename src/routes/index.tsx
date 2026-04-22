@@ -16,6 +16,12 @@ import {
   PieChart, Pie, Cell,
 } from "recharts";
 
+/** Formata uma data ISO (YYYY-MM-DD) sem aplicar timezone (evita "voltar 1 dia"). */
+function fmtISODate(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split("-");
+  return `${d}/${m}/${y}`;
+}
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
