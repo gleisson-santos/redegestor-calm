@@ -4,10 +4,10 @@ import { AppLayout } from "@/components/AppLayout";
 import {
   StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge, FinalidadeBadge,
 } from "@/components/StatusBadge";
-import { fetchObras, deleteObra, upsertObra, type Obra, type ObraInsert } from "@/data/api";
+import { fetchObras, deleteObra, upsertObra, patchObra, type Obra, type ObraInsert } from "@/data/api";
 import { urs, URCode, MaterialTipo } from "@/data/mockData";
-import { Download, Search, Filter, Plus, Pencil, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Download, Search, Filter, Plus, Pencil, Trash2, MessageSquare, Check, X as XIcon, CalendarDays } from "lucide-react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/obras")({
