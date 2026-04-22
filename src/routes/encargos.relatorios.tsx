@@ -1,13 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
-import {
-  BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-} from "recharts";
+import { useMemo, useState, lazy, Suspense } from "react";
 import { ChevronDown, ChevronRight, DollarSign, HardHat, FileText, Download, FileSpreadsheet, Eye, X as XIcon } from "lucide-react";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +9,10 @@ import { Label } from "@/components/ui/label";
 import { fetchMedicoes, fetchMedicaoDetalhe, fetchObrasAtivasNoMes, currentMesReferencia, MedicaoMensal, ObraDetalhe } from "@/data/encargos";
 import { urs, URCode } from "@/data/mockData";
 import { cn } from "@/lib/utils";
+
+// Lazy: recharts e jspdf só baixam quando entrar em /encargos/relatorios.
+const RelatoriosCharts = lazy(() => import("./-relatorios-charts"));
+const loadPdf = () => import("./-relatorios-pdf");
 
 export const Route = createFileRoute("/encargos/relatorios")({
   head: () => ({
