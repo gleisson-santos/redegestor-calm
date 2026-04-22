@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { fetchObras, type Obra } from "@/data/api";
-import { fetchDiarioByObra, insertDiario, deleteDiario, type DiarioInsert } from "@/data/diario";
+import { fetchDiarioByObra, insertDiario, updateDiario, deleteDiario, type DiarioInsert, type DiarioLancamento } from "@/data/diario";
 import { urs, type URCode } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
   ClipboardList, Cloud, CloudRain, Sun, Users, Ruler, Layers, AlertTriangle,
-  Plus, Trash2, BookOpen, Filter, ChevronDown, ChevronUp, CheckCircle2,
+  Plus, Trash2, BookOpen, Filter, ChevronDown, ChevronUp, CheckCircle2, Pencil, X,
 } from "lucide-react";
 
 export const Route = createFileRoute("/obras_/diario")({
