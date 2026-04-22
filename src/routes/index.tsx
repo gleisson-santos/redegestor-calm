@@ -218,28 +218,71 @@ function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-          <section className="lg:col-span-2 bg-card border border-border rounded-md shadow-card">
-            <header className="px-5 py-3.5 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">Extensão por Material × Status do Alvará</h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">Metros lineares planejados, agrupados por material.</p>
+          <section className="lg:col-span-2 bg-card border border-border rounded-md shadow-card overflow-hidden">
+            <header className="px-5 py-3.5 border-b border-border flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Carteira por Unidade Regional</div>
+                <h2 className="text-sm font-semibold text-foreground mt-0.5">Quantidade de Obras por UR</h2>
+              </div>
+              <span className="inline-flex items-center rounded-full border border-accent/40 bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent">
+                Líder · {urLider.ur}
+              </span>
             </header>
-            <div className="p-3 h-[280px]">
-              {chartMaterialAlvara.length === 0 ? (
+
+            <div className="px-5 pt-4 pb-2 flex items-end gap-6">
+              <div>
+                <div className="text-3xl font-semibold tracking-tight text-foreground tabular">
+                  {totalObrasGeral.toLocaleString("pt-BR")}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">Total de obras nas 3 URs</div>
+              </div>
+              <div className="flex gap-4 ml-auto">
+                {obrasPorURChart.map(d => (
+                  <div key={d.ur} className="text-right">
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">{d.ur}</div>
+                    <div className="text-base font-semibold text-foreground tabular font-mono">{d.Total}</div>
+                    <div className="text-[10px] text-muted-foreground tabular">
+                      <span style={{ color: "oklch(0.55 0.14 155)" }}>●</span> {d.Concluidas} · <span style={{ color: "oklch(0.70 0.15 75)" }}>●</span> {d.EmExecucao}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-2 h-[260px]">
+              {totalObrasGeral === 0 ? (
                 <div className="h-full flex items-center justify-center text-[12px] text-muted-foreground">Sem dados.</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartMaterialAlvara} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                  <AreaChart data={obrasPorURChart} margin={{ top: 10, right: 24, left: 8, bottom: 8 }}>
+                    <defs>
+                      <linearGradient id="gradTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="oklch(0.62 0.16 200)" stopOpacity={0.45} />
+                        <stop offset="100%" stopColor="oklch(0.62 0.16 200)" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="gradExec" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="oklch(0.70 0.15 75)" stopOpacity={0.40} />
+                        <stop offset="100%" stopColor="oklch(0.70 0.15 75)" stopOpacity={0.02} />
+                      </linearGradient>
+                      <linearGradient id="gradConc" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="oklch(0.55 0.14 155)" stopOpacity={0.40} />
+                        <stop offset="100%" stopColor="oklch(0.55 0.14 155)" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="material" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`} />
+                    <XAxis dataKey="ur" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} allowDecimals={false} />
                     <Tooltip
-                      contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 }}
-                      formatter={(v: number) => `${v.toLocaleString("pt-BR")} m`}
+                      contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
+                      formatter={(v: number, name: string) => [`${v} obra(s)`, name === "EmExecucao" ? "Em execução" : name === "Concluidas" ? "Concluídas" : "Total"]}
+                      labelFormatter={(l) => `Unidade ${l}`}
                     />
-                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="square" />
-                    <Bar dataKey="Liberado" stackId="a" fill="oklch(0.62 0.16 200)" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="Pendente" stackId="a" fill="oklch(0.70 0.15 75)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                    <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} iconType="circle"
+                      formatter={(v) => v === "EmExecucao" ? "Em execução" : v === "Concluidas" ? "Concluídas" : String(v)} />
+                    <Area type="monotone" dataKey="Total" stroke="oklch(0.62 0.16 200)" strokeWidth={2.5} fill="url(#gradTotal)" activeDot={{ r: 5 }} />
+                    <Area type="monotone" dataKey="EmExecucao" stroke="oklch(0.70 0.15 75)" strokeWidth={2} fill="url(#gradExec)" activeDot={{ r: 4 }} />
+                    <Area type="monotone" dataKey="Concluidas" stroke="oklch(0.55 0.14 155)" strokeWidth={2} fill="url(#gradConc)" activeDot={{ r: 4 }} />
+                  </AreaChart>
                 </ResponsiveContainer>
               )}
             </div>
