@@ -111,11 +111,12 @@ function Dashboard() {
           ))}
         </section>
 
-        <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
           <Kpi icon={HardHat} label="Total de Obras" value={totalObras.toString()} sub={urFilter === "TODAS" ? "todas as URs" : urFilter} />
           <Kpi icon={Ruler} label="Extensão Total" value={`${Math.round(extensao).toLocaleString("pt-BR")} m`} sub="metros lineares planejados" />
           <Kpi icon={FileCheck2} label="Alvarás Pendentes" value={alvarasPendentes.toString()} sub="bloqueios a resolver" tone={alvarasPendentes > 0 ? "warning" : "neutral"} />
           <Kpi icon={Activity} label="Em Execução" value={emExecucao.toString()} sub="obras ativas em campo" tone="accent" />
+          <ObrasRealizadasCard concluidas={concluidas} totalObras={totalObras} extensaoConcluida={extensaoConcluida} extensaoTotal={extensao} pctObras={pctConcluidas} pctExt={pctExtensaoConcluida} />
         </section>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -165,29 +166,52 @@ function Dashboard() {
 
           <section className="bg-card border border-border rounded-md shadow-card">
             <header className="px-5 py-3.5 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">Metragem por Material</h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">Soma da extensão (m) por tipo.</p>
+              <h2 className="text-sm font-semibold text-foreground">Status Operacional</h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Distribuição das obras por situação atual.</p>
             </header>
-            <div className="p-5 space-y-4">
-              {(["DEFOFO", "PEAD", "FOFO"] as const).map(tipo => {
-                const m = porMaterial[tipo];
-                const pct = (m / maxMaterial) * 100;
-                return (
-                  <div key={tipo}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <MaterialBadge tipo={tipo} />
-                      <span className="font-mono text-[13px] tabular font-semibold">{Math.round(m).toLocaleString("pt-BR")} m</span>
-                    </div>
-                    <div className="h-2 rounded-sm bg-muted overflow-hidden">
-                      <div className={cn("h-full rounded-sm transition-all",
-                        tipo === "DEFOFO" && "bg-primary",
-                        tipo === "PEAD" && "bg-info",
-                        tipo === "FOFO" && "bg-muted-foreground/60",
-                      )} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="p-3 h-[260px]">
+              {chartStatus.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-[12px] text-muted-foreground">Sem dados.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={chartStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2}>
+                      {chartStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </section>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+          <section className="lg:col-span-3 bg-card border border-border rounded-md shadow-card">
+            <header className="px-5 py-3.5 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">Extensão por Material × Status do Alvará</h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Metros lineares planejados, agrupados por material, segregando obras com alvará liberado vs. pendente.</p>
+            </header>
+            <div className="p-3 h-[300px]">
+              {chartMaterialAlvara.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-[12px] text-muted-foreground">Sem dados.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartMaterialAlvara} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="material" tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} axisLine={{ stroke: "var(--border)" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`} />
+                    <Tooltip
+                      contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 }}
+                      formatter={(v: number) => `${v.toLocaleString("pt-BR")} m`}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="square" />
+                    <Bar dataKey="Liberado" stackId="a" fill="oklch(0.62 0.16 200)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="Pendente" stackId="a" fill="oklch(0.70 0.15 75)" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </section>
         </div>
