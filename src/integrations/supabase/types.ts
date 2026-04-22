@@ -95,12 +95,15 @@ export type Database = {
           alvara_necessario: boolean
           bairro: string
           created_at: string
+          data_inicio: string | null
+          data_termino: string | null
           dn: number | null
           extensao: number
           finalidade: string
           id: string
           logradouro: string
           material: string
+          observacoes: string | null
           prioridade: number
           status: string
           updated_at: string
@@ -111,12 +114,15 @@ export type Database = {
           alvara_necessario?: boolean
           bairro: string
           created_at?: string
+          data_inicio?: string | null
+          data_termino?: string | null
           dn?: number | null
           extensao?: number
           finalidade?: string
           id?: string
           logradouro: string
           material: string
+          observacoes?: string | null
           prioridade?: number
           status?: string
           updated_at?: string
@@ -127,12 +133,15 @@ export type Database = {
           alvara_necessario?: boolean
           bairro?: string
           created_at?: string
+          data_inicio?: string | null
+          data_termino?: string | null
           dn?: number | null
           extensao?: number
           finalidade?: string
           id?: string
           logradouro?: string
           material?: string
+          observacoes?: string | null
           prioridade?: number
           status?: string
           updated_at?: string
