@@ -213,3 +213,35 @@ export function topPrioridades(list: Obra[], n = 5, urFilter?: URCode): Obra[] {
     .sort((a, b) => a.prioridade - b.prioridade)
     .slice(0, n);
 }
+
+/** Top N prioridades por cada UR, concatenadas (não iniciadas) */
+export function topPrioridadesPorUR(list: Obra[], nPorUr = 3, urFilter?: URCode | "TODAS"): Obra[] {
+  const codes: URCode[] = urFilter && urFilter !== "TODAS" ? [urFilter] : ["UMB", "UML", "UMF"];
+  const out: Obra[] = [];
+  codes.forEach(code => {
+    const sub = list
+      .filter(o => o.ur === code && o.status !== "em_execucao" && o.status !== "concluida")
+      .sort((a, b) => a.prioridade - b.prioridade)
+      .slice(0, nPorUr);
+    out.push(...sub);
+  });
+  return out;
+}
+
+/** Obras em execução (com data_inicio preenchida e ainda não concluídas) */
+export function obrasEmExecucao(list: Obra[], urFilter?: URCode | "TODAS"): Obra[] {
+  const base = urFilter && urFilter !== "TODAS" ? obrasByUR(list, urFilter) : list;
+  return base
+    .filter(o => o.status === "em_execucao")
+    .sort((a, b) => a.prioridade - b.prioridade);
+}
+
+/** Marca uma obra como executada/concluída (define data_termino = hoje) */
+export async function marcarServicoExecutado(id: string) {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const { error } = await supabase
+    .from("obras")
+    .update({ data_termino: hoje, status: "concluida" })
+    .eq("id", id);
+  if (error) throw error;
+}

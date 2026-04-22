@@ -1,15 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "@/components/AppLayout";
 import { AlvaraBadge, MaterialBadge, PrioridadeBadge } from "@/components/StatusBadge";
-import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight, CheckCircle2 } from "lucide-react";
+import { HardHat, Ruler, FileCheck2, Activity, AlertTriangle, ArrowRight, CheckCircle2, PlayCircle, Check } from "lucide-react";
 import {
   fetchObras, fetchMateriais,
-  totalExtensao, extensaoPorMaterial, topPrioridades, urStats,
+  totalExtensao, extensaoPorMaterial, topPrioridadesPorUR, urStats,
+  obrasEmExecucao, marcarServicoExecutado,
 } from "@/data/api";
 import { urs, URCode } from "@/data/mockData";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
   PieChart, Pie, Cell,
@@ -48,7 +50,18 @@ function Dashboard() {
   const alvarasPendentes = filtered.filter(o => o.alvaraNecessario && !o.alvaraLiberado).length;
 
   const porMaterial = extensaoPorMaterial(filtered);
-  const top5 = topPrioridades(obras, 5, urFilter === "TODAS" ? undefined : urFilter);
+  const topObras = useMemo(() => topPrioridadesPorUR(obras, 3, urFilter), [obras, urFilter]);
+  const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
+
+  const qc = useQueryClient();
+  const executarMut = useMutation({
+    mutationFn: (id: string) => marcarServicoExecutado(id),
+    onSuccess: () => {
+      toast.success("Serviço marcado como executado");
+      qc.invalidateQueries({ queryKey: ["obras"] });
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Erro ao concluir obra"),
+  });
 
   // Dados para gráficos (extensão x material x alvará)
   const chartMaterialAlvara = useMemo(() => {
@@ -123,8 +136,8 @@ function Dashboard() {
           <section className="lg:col-span-2 bg-card border border-border rounded-md shadow-card">
             <header className="px-5 py-3.5 border-b border-border flex items-center justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">Top 5 Prioridades — não iniciadas</h2>
-                <p className="text-[12px] text-muted-foreground mt-0.5">Obras com menor ordem de prioridade aguardando início.</p>
+                <h2 className="text-sm font-semibold text-foreground">Top Prioridades por UR — não iniciadas</h2>
+                <p className="text-[12px] text-muted-foreground mt-0.5">3 obras de cada Unidade Regional, com menor ordem de prioridade.</p>
               </div>
               <Link to="/obras" className="text-[12px] text-accent font-medium inline-flex items-center gap-1 hover:underline">
                 Ver todas <ArrowRight className="h-3 w-3" />
@@ -140,60 +153,90 @@ function Dashboard() {
                     <th className="text-left px-2 py-2 font-medium">Material</th>
                     <th className="text-right px-2 py-2 font-medium">DN</th>
                     <th className="text-right px-2 py-2 font-medium">Extensão</th>
-                    <th className="text-left px-4 py-2 font-medium">Alvará</th>
+                    <th className="text-left px-2 py-2 font-medium">Alvará</th>
+                    <th className="text-right px-4 py-2 font-medium">Ação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {top5.map(o => (
+                  {topObras.map(o => (
                     <tr key={o.id} className="hover:bg-muted/30 transition-colors">
                       <td className="px-4 py-2.5"><PrioridadeBadge prioridade={o.prioridade} /></td>
                       <td className="px-2 py-2.5 font-mono text-[12px] text-muted-foreground">{o.ur}</td>
                       <td className="px-2 py-2.5">
-                        <div className="font-medium text-foreground truncate max-w-[280px]">{o.logradouro}</div>
+                        <div className="font-medium text-foreground truncate max-w-[260px]">{o.logradouro}</div>
                         <div className="text-[11px] text-muted-foreground">{o.bairro}</div>
                       </td>
                       <td className="px-2 py-2.5"><MaterialBadge tipo={o.material} /></td>
                       <td className="px-2 py-2.5 text-right tabular font-mono text-[12px]">{o.dn || "—"}</td>
                       <td className="px-2 py-2.5 text-right tabular font-mono">{o.extensaoM.toLocaleString("pt-BR")} m</td>
-                      <td className="px-4 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
+                      <td className="px-2 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
+                      <td className="px-4 py-2.5 text-right">
+                        <button
+                          onClick={() => executarMut.mutate(o.id)}
+                          disabled={executarMut.isPending}
+                          title="Marcar como serviço executado (define término = hoje)"
+                          className="inline-flex items-center gap-1 px-2 h-7 rounded text-[11px] font-medium bg-success-soft text-success border border-success/30 hover:bg-success hover:text-success-foreground transition-colors disabled:opacity-50"
+                        >
+                          <Check className="h-3 w-3" />
+                          Executado
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {top5.length === 0 && !isLoading && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma obra prioritária pendente nesta UR.</div>}
+              {topObras.length === 0 && !isLoading && <div className="px-5 py-8 text-center text-sm text-muted-foreground">Nenhuma obra prioritária pendente.</div>}
             </div>
           </section>
 
-          <section className="bg-card border border-border rounded-md shadow-card">
-            <header className="px-5 py-3.5 border-b border-border">
-              <h2 className="text-sm font-semibold text-foreground">Status Operacional</h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">Distribuição das obras por situação atual.</p>
+          <section className="bg-card border border-accent/30 rounded-md shadow-card">
+            <header className="px-5 py-3.5 border-b border-border flex items-center gap-2">
+              <PlayCircle className="h-4 w-4 text-accent" />
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Obras em Execução</h2>
+                <p className="text-[11px] text-muted-foreground">{emExecucaoList.length} obra(s) ativa(s) em campo.</p>
+              </div>
             </header>
-            <div className="p-3 h-[260px]">
-              {chartStatus.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-[12px] text-muted-foreground">Sem dados.</div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={chartStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2}>
-                      {chartStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 }} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} iconType="circle" />
-                  </PieChart>
-                </ResponsiveContainer>
+            <div className="p-3 space-y-1.5 max-h-[420px] overflow-y-auto">
+              {emExecucaoList.length === 0 && !isLoading && (
+                <div className="px-3 py-8 text-center text-[13px] text-muted-foreground">Nenhuma obra em execução no momento.</div>
               )}
+              {emExecucaoList.map(o => (
+                <div key={o.id} className="px-3 py-2.5 rounded border border-border hover:border-border-strong transition-colors">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-foreground text-[13px] truncate">{o.logradouro}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{o.bairro} · <span className="font-mono">{o.ur}</span></div>
+                    </div>
+                    <PrioridadeBadge prioridade={o.prioridade} />
+                  </div>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <div className="text-[10px] text-muted-foreground font-mono">
+                      {o.dataInicio && <>Início: {new Date(o.dataInicio).toLocaleDateString("pt-BR")}</>}
+                      {o.dataTermino && <> → {new Date(o.dataTermino).toLocaleDateString("pt-BR")}</>}
+                    </div>
+                    <button
+                      onClick={() => executarMut.mutate(o.id)}
+                      disabled={executarMut.isPending}
+                      className="inline-flex items-center gap-1 px-2 h-6 rounded text-[10px] font-medium bg-success-soft text-success border border-success/30 hover:bg-success hover:text-success-foreground transition-colors disabled:opacity-50"
+                    >
+                      <Check className="h-3 w-3" />
+                      Concluir
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
-          <section className="lg:col-span-3 bg-card border border-border rounded-md shadow-card">
+          <section className="lg:col-span-2 bg-card border border-border rounded-md shadow-card">
             <header className="px-5 py-3.5 border-b border-border">
               <h2 className="text-sm font-semibold text-foreground">Extensão por Material × Status do Alvará</h2>
-              <p className="text-[12px] text-muted-foreground mt-0.5">Metros lineares planejados, agrupados por material, segregando obras com alvará liberado vs. pendente.</p>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Metros lineares planejados, agrupados por material.</p>
             </header>
-            <div className="p-3 h-[300px]">
+            <div className="p-3 h-[280px]">
               {chartMaterialAlvara.length === 0 ? (
                 <div className="h-full flex items-center justify-center text-[12px] text-muted-foreground">Sem dados.</div>
               ) : (
@@ -210,6 +253,28 @@ function Dashboard() {
                     <Bar dataKey="Liberado" stackId="a" fill="oklch(0.62 0.16 200)" radius={[0, 0, 0, 0]} />
                     <Bar dataKey="Pendente" stackId="a" fill="oklch(0.70 0.15 75)" radius={[4, 4, 0, 0]} />
                   </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </section>
+
+          <section className="bg-card border border-border rounded-md shadow-card">
+            <header className="px-5 py-3.5 border-b border-border">
+              <h2 className="text-sm font-semibold text-foreground">Status Operacional</h2>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Distribuição por situação atual.</p>
+            </header>
+            <div className="p-3 h-[280px]">
+              {chartStatus.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-[12px] text-muted-foreground">Sem dados.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={chartStatus} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={40} outerRadius={75} paddingAngle={2}>
+                      {chartStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12 }} />
+                    <Legend wrapperStyle={{ fontSize: 10 }} iconType="circle" />
+                  </PieChart>
                 </ResponsiveContainer>
               )}
             </div>
