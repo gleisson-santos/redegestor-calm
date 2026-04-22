@@ -157,6 +157,9 @@ function ConsolidadoPage() {
             )}
             {isLoading && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Carregando consolidado…</div>}
           </div>
+          {filtered.length > 0 && (
+            <Pager page={currentPage} totalPages={totalPages} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage} />
+          )}
         </section>
       </div>
 
