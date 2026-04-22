@@ -20,6 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/obras")({
@@ -141,8 +142,10 @@ function ObrasPage() {
                   <th className="text-left px-2 py-2.5 font-medium">Mat.</th>
                   <th className="text-right px-2 py-2.5 font-medium">DN</th>
                   <th className="text-right px-2 py-2.5 font-medium">Extensão</th>
+                  <th className="text-left px-2 py-2.5 font-medium">Período</th>
                   <th className="text-left px-2 py-2.5 font-medium">Status</th>
                   <th className="text-left px-2 py-2.5 font-medium">Alvará</th>
+                  <th className="text-center px-2 py-2.5 font-medium">Obs</th>
                   <th className="text-right px-3 py-2.5 font-medium">Ações</th>
                 </tr>
               </thead>
@@ -158,9 +161,11 @@ function ObrasPage() {
                     <td className="px-2 py-2.5"><FinalidadeBadge finalidade={o.finalidade} /></td>
                     <td className="px-2 py-2.5"><MaterialBadge tipo={o.material} /></td>
                     <td className="px-2 py-2.5 text-right tabular font-mono">{o.dn || "—"}</td>
-                    <td className="px-2 py-2.5 text-right tabular font-mono font-semibold">{o.extensaoM.toLocaleString("pt-BR")} m</td>
+                    <td className="px-2 py-2.5 text-right"><InlineExtensao obra={o} /></td>
+                    <td className="px-2 py-2.5"><PeriodoCell obra={o} /></td>
                     <td className="px-2 py-2.5"><StatusBadge status={o.status} /></td>
                     <td className="px-2 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
+                    <td className="px-2 py-2.5 text-center"><ObsCell obra={o} /></td>
                     <td className="px-3 py-2.5 text-right whitespace-nowrap">
                       <button onClick={() => setEditing(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar">
                         <Pencil className="h-3.5 w-3.5" />
