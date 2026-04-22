@@ -50,7 +50,18 @@ function Dashboard() {
   const alvarasPendentes = filtered.filter(o => o.alvaraNecessario && !o.alvaraLiberado).length;
 
   const porMaterial = extensaoPorMaterial(filtered);
-  const top5 = topPrioridades(obras, 5, urFilter === "TODAS" ? undefined : urFilter);
+  const topObras = useMemo(() => topPrioridadesPorUR(obras, 3, urFilter), [obras, urFilter]);
+  const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
+
+  const qc = useQueryClient();
+  const executarMut = useMutation({
+    mutationFn: (id: string) => marcarServicoExecutado(id),
+    onSuccess: () => {
+      toast.success("Serviço marcado como executado");
+      qc.invalidateQueries({ queryKey: ["obras"] });
+    },
+    onError: (e: Error) => toast.error(e.message ?? "Erro ao concluir obra"),
+  });
 
   // Dados para gráficos (extensão x material x alvará)
   const chartMaterialAlvara = useMemo(() => {
