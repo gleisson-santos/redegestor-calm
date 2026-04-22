@@ -4,7 +4,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { StatusBadge, MaterialBadge, AlvaraBadge, PrioridadeBadge } from "@/components/StatusBadge";
 import { fetchObras, urStats, obrasByUR, extensaoPorMaterial } from "@/data/api";
 import { urs, URCode } from "@/data/mockData";
-import { Building2, HardHat, Ruler, AlertTriangle, ArrowRight } from "lucide-react";
+import { Building2, HardHat, Ruler, MapPin, ArrowRight } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +55,7 @@ function URsPage() {
                 <div className="grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-border">
                   <Stat n={s.obras} l="Obras" />
                   <Stat n={Math.round(s.extensaoM).toLocaleString("pt-BR")} l="Metros" mono />
-                  <Stat n={s.criticas} l="Críticas" tone={s.criticas > 0 ? "warning" : "neutral"} />
+                  <Stat n={s.bairros} l="Bairros" />
                 </div>
               </button>
             );
@@ -78,7 +78,7 @@ function URsPage() {
                 <MiniKpi icon={HardHat} value={stats.obras.toString()} label="Obras" />
                 <MiniKpi icon={Ruler} value={`${Math.round(stats.extensaoM).toLocaleString("pt-BR")} m`} label="Extensão" />
                 <MiniKpi icon={Building2} value={stats.aguardandoAlvara.toString()} label="Aguard. alvará" tone="warning" />
-                <MiniKpi icon={AlertTriangle} value={stats.criticas.toString()} label="Críticas" tone="warning" />
+                <MiniKpi icon={MapPin} value={stats.bairros.toString()} label="Bairros" />
               </div>
               <div className="pt-2 border-t border-border">
                 <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mb-2.5">Por material</div>
