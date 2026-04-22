@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { fetchMedicoes, fetchMedicaoDetalhe, fetchObrasAtivasNoMes, currentMesReferencia, MedicaoMensal, ObraDetalhe } from "@/data/encargos";
+import { fetchMedicoes, fetchMedicaoDetalhe, fetchObrasAtivasNoMes, currentMesReferencia, MedicaoMensal } from "@/data/encargos";
 import { urs, URCode } from "@/data/mockData";
 import { cn } from "@/lib/utils";
 
