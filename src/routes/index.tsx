@@ -55,6 +55,13 @@ function Dashboard() {
   const alvarasPendentes = filtered.filter(o => o.alvaraNecessario && !o.alvaraLiberado).length;
 
   const porMaterial = extensaoPorMaterial(filtered);
+  const extPorTipo = useMemo(() => {
+    const tipos: ("DEFOFO" | "FOFO" | "PEAD")[] = ["DEFOFO", "FOFO", "PEAD"];
+    return tipos.map(t => ({
+      tipo: t,
+      metros: filtered.filter(o => o.material === t).reduce((s, o) => s + o.extensaoM, 0),
+    }));
+  }, [filtered]);
   const topObras = useMemo(() => topPrioridadesPorUR(obras, 3, urFilter), [obras, urFilter]);
   const emExecucaoList = useMemo(() => obrasEmExecucao(obras, urFilter), [obras, urFilter]);
 
