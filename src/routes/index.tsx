@@ -331,3 +331,29 @@ function Kpi({ icon: Icon, label, value, sub, tone = "neutral" }: { icon: typeof
     </div>
   );
 }
+
+function ObrasRealizadasCard({ concluidas, totalObras, extensaoConcluida, pctObras, pctExt }: {
+  concluidas: number; totalObras: number; extensaoConcluida: number; extensaoTotal: number; pctObras: number; pctExt: number;
+}) {
+  return (
+    <div className="bg-card border border-success/30 rounded-md p-4 shadow-card relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-success-soft/40 to-transparent pointer-events-none" />
+      <div className="relative">
+        <div className="flex items-start justify-between mb-3">
+          <div className="h-9 w-9 rounded flex items-center justify-center bg-success-soft text-success">
+            <CheckCircle2 className="h-[18px] w-[18px]" />
+          </div>
+          <span className="text-[11px] font-mono font-semibold text-success tabular">{pctObras.toFixed(1)}%</span>
+        </div>
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Obras Realizadas</div>
+        <div className="text-2xl font-semibold tabular tracking-tight text-foreground mt-0.5">{concluidas}<span className="text-muted-foreground text-base font-normal"> / {totalObras}</span></div>
+        <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+          <div className="h-full bg-success transition-all" style={{ width: `${Math.min(100, pctObras)}%` }} />
+        </div>
+        <div className="text-[11px] text-muted-foreground mt-2 font-mono">
+          {Math.round(extensaoConcluida).toLocaleString("pt-BR")} m executados · {pctExt.toFixed(1)}% da extensão
+        </div>
+      </div>
+    </div>
+  );
+}
