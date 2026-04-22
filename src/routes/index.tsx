@@ -275,12 +275,16 @@ function Dashboard() {
                     <th className="text-right px-2 py-2 font-medium">Obras</th>
                     <th className="text-right px-2 py-2 font-medium">Extensão</th>
                     <th className="text-right px-2 py-2 font-medium">Aguard. alvará</th>
-                    <th className="text-right px-4 py-2 font-medium">Críticas</th>
+                    <th className="text-right px-2 py-2 font-medium">Em execução</th>
+                    <th className="text-right px-2 py-2 font-medium">Concluídas</th>
+                    <th className="text-right px-4 py-2 font-medium">% Execução</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {urs.map(u => {
                     const s = urStats(obras, u.code);
+                    const pct = s.obras > 0 ? Math.round((s.concluidas / s.obras) * 100) : 0;
+                    const toneBar = pct >= 50 ? "bg-success" : pct >= 20 ? "bg-warning" : "bg-destructive";
                     return (
                       <tr key={u.code} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-2.5">
@@ -293,11 +297,24 @@ function Dashboard() {
                         <td className="px-2 py-2.5 text-muted-foreground">{u.gerente}</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono">{s.obras}</td>
                         <td className="px-2 py-2.5 text-right tabular font-mono font-semibold">{Math.round(s.extensaoM).toLocaleString("pt-BR")} m</td>
-                        <td className="px-2 py-2.5 text-right tabular font-mono">{s.aguardandoAlvara}</td>
+                        <td className="px-2 py-2.5 text-right tabular font-mono">
+                          {s.aguardandoAlvara > 0 ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono bg-warning-soft text-warning-foreground border border-warning/20">{s.aguardandoAlvara}</span>
+                          ) : (<span className="text-muted-foreground">—</span>)}
+                        </td>
+                        <td className="px-2 py-2.5 text-right tabular font-mono">
+                          {s.emExecucao > 0 ? (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono bg-accent-soft text-accent border border-accent/20">{s.emExecucao}</span>
+                          ) : (<span className="text-muted-foreground">—</span>)}
+                        </td>
+                        <td className="px-2 py-2.5 text-right tabular font-mono">{s.concluidas}</td>
                         <td className="px-4 py-2.5 text-right">
-                          {s.criticas > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-mono bg-destructive-soft text-destructive border border-destructive/20">{s.criticas}</span>
-                          ) : (<span className="text-muted-foreground font-mono text-[12px]">—</span>)}
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div className={cn("h-full transition-all", toneBar)} style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="font-mono text-[12px] tabular w-9 text-right">{pct}%</span>
+                          </div>
                         </td>
                       </tr>
                     );
