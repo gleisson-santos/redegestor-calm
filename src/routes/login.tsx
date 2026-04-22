@@ -169,12 +169,12 @@ function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 p-4">
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted via-background to-muted p-4">
       <div className="w-full max-w-5xl grid md:grid-cols-2 rounded-2xl overflow-hidden shadow-elevated border border-border bg-card">
         {/* Lado esquerdo — mapa */}
-        <div className="relative hidden md:block bg-gradient-to-br from-slate-900 via-slate-800 to-accent overflow-hidden min-h-[560px]">
+        <div className="relative hidden md:block bg-gradient-to-br from-foreground via-foreground/90 to-accent overflow-hidden min-h-[560px]">
           <DotMap />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-transparent to-transparent" />
           <div className="relative z-10 flex flex-col justify-end h-full p-10 text-white">
             <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 backdrop-blur ring-1 ring-white/20">
               <Activity className="h-6 w-6" />
