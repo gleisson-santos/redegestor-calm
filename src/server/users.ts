@@ -127,9 +127,23 @@ export interface AdminUserRow {
   created_at: string;
 }
 
+export interface ListUsersDiagnostics {
+  projectRef: string;
+  authCount: number;
+  profilesCount: number;
+  rolesCount: number;
+  shownCount: number;
+  expectedProjectRef: string;
+  projectMismatch: boolean;
+  suspicious: boolean;
+  hint?: string;
+}
+
+const EXPECTED_PROJECT_REF = "mrvplahmthguvrauzwpy";
+
 export const listUsers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<{ users: AdminUserRow[]; warning?: string }> => {
+  .handler(async ({ context }): Promise<{ users: AdminUserRow[]; warning?: string; diagnostics: ListUsersDiagnostics }> => {
     logEnv("listUsers");
     await assertAdmin(context.userId);
     const sb = supabaseAdmin as any;
