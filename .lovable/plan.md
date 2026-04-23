@@ -1,105 +1,55 @@
 
-## Diagnóstico
 
-O erro continua porque a falha acontece antes do build command rodar. Pelas capturas, o Cloudflare ainda entra na etapa:
+## Atualizar guia `.md` com fluxo de publicação manual
+
+Adicionar uma nova seção ao arquivo `/mnt/documents/deploy-cloudflare-lovable.md` documentando o fluxo de branch `production` para controle manual de deploys, que acabamos de validar com sucesso.
+
+## O que será adicionado
+
+Uma nova seção ao final do guia existente (mantendo todo o conteúdo atual intacto), contendo:
+
+### 1. Introdução à estratégia
+Explicação curta do "porquê": separar edição contínua (Lovable → `main`) de publicação controlada (merge → `production` → Cloudflare).
+
+### 2. Diagrama do fluxo
+Bloco ASCII mostrando os dois ambientes:
 
 ```text
-Installing project dependencies: bun install --frozen-lockfile
+Lovable edita  →  main         (não publica)
+Você decide    →  merge para production  →  Cloudflare faz deploy
 ```
 
-Isso acontece porque o repositório ainda contém artefatos do Bun:
-- `bun.lockb`
-- `bunfig.toml`
+### 3. Setup inicial (passo a passo único)
+- **Passo 1** — Criar branch `production` no GitHub a partir da `main`
+- **Passo 2** — No Cloudflare (Workers e Pages → projeto → Configurações → Build → Controle da ramificação):
+  - Trocar ramificação de produção: `main` → `production`
+  - Desmarcar "Compilações para ramificações de não produção"
 
-Mesmo com `Comando da build: npm run build`, o Cloudflare detecta `bun.lockb` e escolhe Bun na fase de instalação. Como esse lockfile está incompatível com a versão do Bun do runner, a instalação aborta.
-
-Também confirmei no código:
-- `package.json` usa scripts normais de npm
-- `package-lock.json` existe e já pode ser a fonte oficial
-- `wrangler.jsonc` ainda está com `"name": "tanstack-start-app"` enquanto o serviço no Cloudflare é `redegestor-calm`
-
-## O que vou ajustar no repositório
-
-### 1) Padronizar o projeto para npm
-Arquivos:
-- remover `bun.lockb`
-- remover `bunfig.toml`
-- manter `package-lock.json` como lockfile oficial
-- atualizar `package.json` para deixar explícito o gerenciador:
-  ```json
-  "packageManager": "npm@10.9.2"
+### 4. Fluxo do dia a dia (publicação manual)
+- Edita normalmente no Lovable (vai pra `main`, não publica)
+- Quando quiser publicar, abre o link de atalho:
+  ```text
+  https://github.com/<usuario>/<repo>/compare/production...main
   ```
+- Clica em "Create pull request" → "Merge pull request" → "Confirm merge"
+- Cloudflare detecta e faz o deploy em ~1-2 min
 
-Objetivo:
-- impedir que o Cloudflare tente instalar dependências com Bun
+### 5. Prompt curto para reaproveitar em novos projetos
+Um prompt pronto para o usuário colar em qualquer projeto Lovable novo, pedindo para configurar o mesmo fluxo:
 
-### 2) Sincronizar a configuração do worker
-Arquivo:
-- `wrangler.jsonc`
+> "Quero usar fluxo de publicação manual no Cloudflare. Me dê o passo a passo para criar uma branch `production` no GitHub e configurar o Cloudflare Workers para só fazer deploy quando eu fizer merge de `main` para `production`. Inclua o link de atalho do PR."
 
-Trocar:
-```json
-"name": "tanstack-start-app"
-```
+### 6. Tabela comparativa rápida
+Mini tabela: auto-deploy vs branch `production` (quando vale a pena cada um).
 
-Para:
-```json
-"name": "redegestor-calm"
-```
+### 7. Troubleshooting curto
+- "Fiz merge e não publicou" → verificar se a branch de produção no Cloudflare é mesmo `production`
+- "Não aparece o banner de PR no GitHub" → usar o link `/compare/production...main` direto
+- "Quero voltar pro auto-deploy" → trocar de volta produção para `main` no Cloudflare
 
-Objetivo:
-- eliminar o aviso de configuração inconsistente e alinhar o deploy com o serviço real no Cloudflare
+## Arquivo afetado
+- `/mnt/documents/deploy-cloudflare-lovable.md` — nova versão `_v2` para preservar a versão anterior como baseline
 
-### 3) Revisão rápida de sinais de Bun
-Vou revisar referências restantes a Bun para não sobrar nenhum gatilho de autodetecção no projeto.
+## Entrega
+Após escrever, emitir tag `<lov-artifact>` apontando para o novo arquivo `.md` para você baixar.
 
-## O que você fará no Cloudflare depois
-
-Depois que eu aplicar as mudanças no repo:
-
-1. Confirmar que o build command continua:
-   ```text
-   npm run build
-   ```
-2. Manter o deploy command:
-   ```text
-   npx wrangler deploy
-   ```
-3. Limpar o cache da build
-4. Rodar novo deploy
-
-## Variáveis que precisam continuar cadastradas
-
-No Cloudflare devem existir:
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY`
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_SUPABASE_PROJECT_ID`
-- `SERVICE_ROLE_KEY`
-
-Pelas capturas, isso parece estar quase certo; o bloqueio atual ainda é o Bun, não Supabase.
-
-## Resultado esperado
-
-O fluxo deve passar a ser:
-
-```text
-Install: npm install / npm ci usando package-lock.json
-Build: npm run build
-Deploy: npx wrangler deploy
-```
-
-Em vez de:
-
-```text
-bun install --frozen-lockfile
-```
-
-## Arquivos que serão alterados
-- `package.json`
-- `wrangler.jsonc`
-
-## Arquivos que serão removidos
-- `bun.lockb`
-- `bunfig.toml`
