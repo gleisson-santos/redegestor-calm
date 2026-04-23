@@ -16,11 +16,17 @@ export const Route = createFileRoute("/api/public/runtime")({
         } catch {
           host = "?";
         }
+        const hasUrl = !!process.env.SUPABASE_URL;
         const serverProjectRef = extractProjectRef(process.env.SUPABASE_URL);
         const hasService = !!(
           process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY
         );
         const hasPub = !!process.env.SUPABASE_PUBLISHABLE_KEY;
+        const envComplete = hasUrl && hasService && hasPub;
+        const missingEnv: string[] = [];
+        if (!hasUrl) missingEnv.push("SUPABASE_URL");
+        if (!hasPub) missingEnv.push("SUPABASE_PUBLISHABLE_KEY");
+        if (!hasService) missingEnv.push("SUPABASE_SERVICE_ROLE_KEY");
         return Response.json(
           {
             host,
@@ -30,8 +36,11 @@ export const Route = createFileRoute("/api/public/runtime")({
             projectMismatch:
               serverProjectRef !== "?" &&
               serverProjectRef !== EXPECTED_PROJECT_REF,
+            hasSupabaseUrl: hasUrl,
             hasServiceKey: hasService,
             hasPublishableKey: hasPub,
+            envComplete,
+            missingEnv,
             timestamp: new Date().toISOString(),
           },
           { headers: { "cache-control": "no-store" } }
