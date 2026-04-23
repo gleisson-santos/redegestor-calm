@@ -398,7 +398,7 @@ function ObraDialogContent({ obra, onClose }: { obra: Obra | null; onClose: () =
 }
 
 /* ---------- Edição inline da extensão ---------- */
-function InlineExtensao({ obra }: { obra: Obra }) {
+function InlineExtensao({ obra, canEdit }: { obra: Obra; canEdit: boolean }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState<string>(String(obra.extensaoM));
@@ -411,12 +411,22 @@ function InlineExtensao({ obra }: { obra: Obra }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const handleEnter = () => {
+    if (!canEdit) {
+      toast.error(permissionDeniedMessage(obra.ur));
+      return;
+    }
+    setVal(String(obra.extensaoM));
+    setEditing(true);
+  };
+
   if (!editing) {
     return (
-      <button onClick={() => { setVal(String(obra.extensaoM)); setEditing(true); }}
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-muted tabular font-mono font-semibold text-right group">
+      <button onClick={handleEnter}
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-muted tabular font-mono font-semibold text-right group"
+        title={canEdit ? "Editar extensão" : permissionDeniedMessage(obra.ur)}>
         <span>{obra.extensaoM.toLocaleString("pt-BR")} m</span>
-        <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60" />
+        {canEdit && <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60" />}
       </button>
     );
   }
