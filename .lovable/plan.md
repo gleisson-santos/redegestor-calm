@@ -1,62 +1,91 @@
 
-Objetivo: eliminar o “sucesso falso” em Usuários e confirmar se `gestorr.controllserv.com.br` está mesmo servindo este projeto.
+Objetivo: parar o ciclo de “cria com sucesso / lista vazia” e tornar explícito quando o domínio aberto não é o deploy atual deste projeto.
 
-1. Confirmar e expor o problema de deploy/domínio
-- Adicionar à tela `/usuarios` um bloco discreto de diagnóstico visível só para admin com:
-  - host atual da requisição
-  - ref do projeto Supabase visto no servidor
-  - contagens de `auth.users`, `profiles`, `user_roles`
-  - identificador do build atual
-- Exibir mensagem específica quando o host em uso não bater com o deploy esperado ou quando a resposta do servidor indicar ambiente diferente/stale.
+Problema mais provável
+- O print mostra o app rodando em `redegestor-calm.jsgleisson9350.workers.dev/usuarios`.
+- A publicação atual deste projeto é `redegestor.lovable.app` e não há custom domain configurado no projeto.
+- Como a tela ainda mostra o estado antigo “Nenhum usuário ainda.” sem o bloco de diagnóstico já previsto no código recente, o mais provável não é mais RLS nem trigger: é um frontend/backend diferente do deploy atual, servido por um Worker/host paralelo ou antigo.
 
-2. Tornar o “criado com sucesso” realmente confiável
-- Ajustar `createUser` para, após criar no Auth/Profile/Role, validar o resultado final antes de retornar sucesso.
-- Depois da criação, a UI deve recarregar a lista e confirmar que o novo `id` apareceu.
-- Se o usuário não aparecer após a confirmação, trocar o toast de sucesso por erro orientado, informando que o frontend e o backend do domínio atual não estão sincronizados.
+O que será implementado
 
-3. Centralizar a referência correta do projeto Supabase
-- Remover dependências espalhadas de ref esperada/hardcode duplicado.
-- Criar uma única fonte de verdade para:
-  - `SUPABASE_URL`
-  - ref esperada do projeto
+1. Centralizar de vez a identidade do ambiente
+- Fazer `client.ts`, `client.server.ts` e `auth-middleware.ts` consumirem a mesma configuração pública compartilhada.
+- Manter em um único lugar:
+  - URL Supabase esperada
+  - ref do projeto esperada
   - publishable key pública
-- Fazer cliente e servidor usarem a mesma referência pública para evitar divergência entre browser e server functions.
+  - build stamp
+- Evitar divergência entre browser, middleware e server functions.
 
-4. Fortalecer o diagnóstico do servidor
-- Ampliar `listUsers` para retornar também:
-  - host recebido pela requisição
-  - build/version stamp
-  - indício de deploy desatualizado
-- Refinar logs para diferenciar claramente:
+2. Criar um diagnóstico global, não só em `/usuarios`
+- Adicionar um indicador discreto para admin no layout principal mostrando:
+  - host atual
+  - build stamp
+  - ref Supabase do cliente
+- Isso permite detectar deploy stale mesmo antes de abrir a tela de usuários.
+- Se o bundle aberto não for o atual, isso ficará evidente em qualquer página.
+
+3. Criar um endpoint público de inspeção do runtime
+- Adicionar uma rota pública do tipo `/api/public/runtime` retornando:
+  - host recebido
+  - build stamp
+  - projeto Supabase detectado no servidor
+  - projeto esperado
+- Isso permite comparar rapidamente:
+  - `redegestor.lovable.app`
+  - `redegestor-calm.jsgleisson9350.workers.dev`
+  - qualquer `.com.br`
+- Se os valores divergirem, o problema é publicação/apontamento e não código da lista.
+
+4. Endurecer `listUsers` para nunca voltar “vazio normal” em cenário suspeito
+- Ajustar `src/server/users.ts` para classificar separadamente:
   - deploy correto sem usuários
-  - deploy apontando para projeto Supabase errado
-  - domínio externo servindo build antigo
-  - criação no Auth sem refletir na interface atual
+  - projeto Supabase errado
+  - host/build desatualizado
+  - resposta sem metadados esperados
+- Se `auth.users = 0`, ou se o runtime vier de projeto diferente, ou se o frontend estiver sem o diagnóstico esperado, a UI não mostrará mais “Nenhum usuário ainda.” como se fosse caso normal.
 
-5. Ajustar a UX da página de Usuários
-- Substituir o “Nenhum usuário ainda.” por estados mais precisos:
+5. Fortalecer `createUser` contra falso positivo
+- Após criar em Auth/Profile/Role:
+  - confirmar no Auth
+  - confirmar em `profiles`
+  - confirmar em `user_roles`
+  - recarregar a lista
+  - confirmar presença do novo `id`
+- Se qualquer etapa falhar, retornar erro explícito.
+- Se o Auth confirmar, mas a lista do domínio atual não refletir o novo usuário, exibir mensagem orientada dizendo que o domínio atual não está sincronizado com o runtime correto.
+
+6. Ajustar a UX da página `/usuarios`
+- Trocar o estado vazio genérico por mensagens exatas:
   - “Este domínio parece estar em um deploy antigo”
   - “Servidor conectado ao projeto Supabase X, esperado Y”
-  - “Usuário criado no Auth, mas este deploy não recarregou a lista correta”
-- Manter a tabela vazia apenas para o caso realmente normal.
+  - “Usuário criado no Auth, mas esta interface não está lendo o mesmo runtime”
+  - “Resposta sem diagnóstico: provável frontend antigo”
+- Reservar “Nenhum usuário ainda.” apenas para o caso realmente legítimo.
 
-6. Verificação final
-- Testar o comportamento em:
+7. Verificação final
+- Comparar os três ambientes:
   - `redegestor.lovable.app`
-  - `gestorr.controllserv.com.br`
-- Confirmar se ambos mostram o mesmo build stamp e o mesmo diagnóstico.
-- Se o `.com.br` continuar divergente, o problema deixa de ser código e passa a ser apontamento/publicação do domínio.
+  - `redegestor-calm.jsgleisson9350.workers.dev`
+  - eventual domínio `.com.br`
+- Confirmar igualdade de:
+  - build stamp
+  - host percebido
+  - projeto Supabase do servidor
+  - contagens de `auth.users`, `profiles`, `user_roles`
+- Se o `workers.dev` ou `.com.br` continuarem diferentes do `lovable.app`, concluir formalmente que o problema é deploy/apontamento externo, não mais a lógica deste repositório.
 
 Arquivos previstos
+- `src/integrations/supabase/config.ts`
+- `src/integrations/supabase/client.ts`
+- `src/integrations/supabase/client.server.ts`
+- `src/integrations/supabase/auth-middleware.ts`
 - `src/server/users.ts`
 - `src/routes/usuarios.tsx`
-- `src/integrations/supabase/client.server.ts`
-- possivelmente um helper compartilhado de configuração Supabase
-
-Observação importante
-- Pelos sinais atuais, o comportamento visto no print não bate com a lógica mais recente do `listUsers`, e este projeto não está com custom domain configurado na publicação atual. Isso indica forte chance de `gestorr.controllserv.com.br` estar servindo outro deploy, um build antigo, ou uma publicação paralela. O ajuste acima vai tornar isso visível na própria tela, sem depender de suposição.
+- `src/components/AppLayout.tsx`
+- novo endpoint público em `src/routes/api/public/runtime.ts`
 
 Detalhes técnicos
-- Hoje, com o código atual de `listUsers`, se houver usuários em `auth.users`, a tabela não deveria continuar vazia silenciosamente.
-- Como o print ainda mostra “Nenhum usuário ainda.” após “Usuário criado”, a hipótese principal não é mais trigger/RLS, e sim desalinhamento entre domínio, build ativo e server runtime.
-- A implementação vai transformar esse cenário em diagnóstico explícito e bloquear o falso positivo de criação.
+- O indício mais forte hoje é: o domínio do print não é a publicação atual conhecida do projeto.
+- Se o código recente tivesse sido carregado nesse host, a tela de usuários já deveria estar mostrando diagnóstico, não apenas a mensagem antiga.
+- Portanto, a próxima correção precisa sair da tela isolada de usuários e passar a expor versão/host/runtime globalmente, para provar qual deploy está sendo servido em cada domínio.
