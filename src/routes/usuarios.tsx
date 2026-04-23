@@ -59,6 +59,7 @@ function UsuariosPage() {
   if (!isAdmin) return <Navigate to="/" />;
 
   const users = usersQ.data?.users ?? [];
+  const warning = usersQ.data?.warning;
   const loadError = usersQ.error instanceof Error ? usersQ.error.message : usersQ.isError ? "Falha ao carregar usuários." : null;
 
   return (
@@ -80,9 +81,21 @@ function UsuariosPage() {
         {loadError && (
           <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             <p className="font-medium">Não foi possível carregar a lista.</p>
-            <p className="mt-1 text-destructive/80">{loadError}</p>
+            <p className="mt-1 text-destructive/80 break-words">{loadError}</p>
             <p className="mt-2 text-xs text-destructive/70">
-              Configure o secret <code className="font-mono">SERVICE_ROLE_KEY</code> em Project Settings → Secrets para habilitar a administração de usuários.
+              Verifique no Cloudflare se as variáveis <code className="font-mono">SUPABASE_URL</code>,{" "}
+              <code className="font-mono">SUPABASE_PUBLISHABLE_KEY</code> e{" "}
+              <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> apontam para o mesmo projeto Supabase usado pelo app{" "}
+              (<code className="font-mono">mrvplahmthguvrauzwpy</code>). Se forem credenciais de outro projeto, a lista virá vazia mesmo havendo usuários.
+            </p>
+          </div>
+        )}
+
+        {warning && !loadError && (
+          <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
+            <p className="font-medium">Atenção: {warning}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Edite cada usuário e salve para sincronizar nome/UR no profile.
             </p>
           </div>
         )}
