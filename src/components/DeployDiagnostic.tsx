@@ -49,7 +49,13 @@ export function DeployDiagnostic() {
   const browserHost = typeof window !== "undefined" ? window.location.host : "?";
   const stampMatch = info && info.buildStamp === BUILD_STAMP;
   const projectOk = info && !info.projectMismatch;
-  const hostMatch = info && info.host === browserHost;
+  // Lovable preview runs the app inside an iframe proxy: server sees localhost:*
+  // while browser sees *.lovableproject.com / *.lovable.app. Treat as expected.
+  const isPreviewProxy =
+    !!info &&
+    /^localhost(:\d+)?$/.test(info.host) &&
+    /\.(lovableproject\.com|lovable\.app)$/.test(browserHost);
+  const hostMatch = info && (info.host === browserHost || isPreviewProxy);
   const allOk = !error && info && stampMatch && projectOk && hostMatch && info.hasServiceKey;
 
   const badgeColor = error
