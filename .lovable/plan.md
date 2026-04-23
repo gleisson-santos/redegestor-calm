@@ -1,34 +1,75 @@
+# Configuração do deploy Cloudflare Worker
 
+Guia definitivo para configurar (ou diagnosticar) qualquer novo deploy do Worker
+deste projeto no Cloudflare. Baseado no caso real do Worker `redegestor-calm`.
 
-## Remover diagnóstico e documentar configuração correta do Cloudflare
+## Causa raiz (conhecida)
 
-Funcionou. O domínio `gestor.controllserv.com.br` agora mostra `supabase url: sim`, `publishable key: sim`, `service key: sim` e lista os usuários. Confirmado: o problema era cadastro das variáveis no painel errado.
+O frontend funciona em qualquer deploy porque a `SUPABASE_URL` e a anon/publishable
+key estão hardcoded em `src/integrations/supabase/client.ts` (vão no bundle do
+navegador). Por isso telas que leem o Supabase via RLS funcionam normalmente.
 
-### 1. Remover o badge de diagnóstico da interface
-- Em `src/components/AppLayout.tsx`, remover o import e o uso de `<DeployDiagnostic />` da topbar.
-- Excluir o arquivo `src/components/DeployDiagnostic.tsx`.
-- Manter o endpoint `/api/public/runtime` ativo (útil para futura verificação rápida via URL, sem poluir a UI).
+Já as **server functions de admin** (`listUsers`, `createUser`, `updateUserProfile`,
+`deleteUser`, etc., em `src/server/users.ts`) rodam dentro do Worker e leem
+`process.env.SUPABASE_URL`, `process.env.SUPABASE_PUBLISHABLE_KEY` e
+`process.env.SUPABASE_SERVICE_ROLE_KEY` em **runtime**. Sem essas três variáveis,
+a tela `/usuarios` retorna lista vazia mesmo havendo usuários no banco.
 
-### 2. Atualizar `.lovable/plan.md` com a instrução definitiva
-Substituir o conteúdo do arquivo por um guia objetivo, registrando o que foi descoberto e como reproduzir a configuração correta:
+## Local CORRETO de cadastro no Cloudflare
 
-- **Causa**: variáveis cadastradas em "Build → Variáveis e segredos" só valem em build-time. As server functions de admin leem `process.env` em **runtime** do Worker, que vem de outro painel.
-- **Local correto**: Cloudflare → Workers & Pages → `redegestor-calm` → **Configurações → Variáveis e segredos** (não a aba Build).
-- **Variáveis obrigatórias** (todas como tipo **Segredo**):
-  - `SUPABASE_URL` = `https://mrvplahmthguvrauzwpy.supabase.co`
-  - `SUPABASE_PUBLISHABLE_KEY` = anon/publishable key do Supabase
-  - `SUPABASE_SERVICE_ROLE_KEY` = service_role key (Supabase Dashboard → Project Settings → API → `service_role`)
-  - `SERVICE_ROLE_KEY` = mesmo valor da service_role (fallback aceito pelo código)
-- **Passo final**: clicar em **Implantar** no painel lateral após salvar — sem isso as variáveis não passam a valer.
-- **Validação**: abrir `https://<dominio>/api/public/runtime` e conferir `hasSupabaseUrl: true`, `hasPublishableKey: true`, `hasServiceKey: true`, `serverProjectRef: "mrvplahmthguvrauzwpy"`.
+⚠️ Cuidado: o Cloudflare tem dois painéis de variáveis. **Não confunda**.
 
-### Arquivos previstos
-- `src/components/AppLayout.tsx` (remover uso do diagnóstico)
-- `src/components/DeployDiagnostic.tsx` (excluir)
-- `.lovable/plan.md` (reescrever como guia de configuração)
+- ❌ **Build → Variáveis e segredos** (aba "Configuração do Workers" / Build):
+  só vale durante `npm run build`. Não chega ao runtime do Worker.
+- ✅ **Configurações → Variáveis e segredos** (painel lateral "Definir variáveis
+  e segredos para este ambiente"): este sim alimenta `process.env` em runtime.
 
-### Resultado esperado
-- Topbar limpa, sem o badge de build.
-- Endpoint `/api/public/runtime` continua disponível para inspeção pontual.
-- `.lovable/plan.md` passa a servir como referência permanente para configurar qualquer novo deploy do Worker no Cloudflare.
+Cadastrar no painel **Configurações → Variáveis e segredos**, todas como tipo
+**Segredo** (não Variable):
 
+| Nome                          | Valor                                                                 |
+| ----------------------------- | --------------------------------------------------------------------- |
+| `SUPABASE_URL`                | `https://mrvplahmthguvrauzwpy.supabase.co`                            |
+| `SUPABASE_PUBLISHABLE_KEY`    | anon/publishable key do Supabase                                      |
+| `SUPABASE_SERVICE_ROLE_KEY`   | service_role key (Supabase → Project Settings → API → `service_role`) |
+| `SERVICE_ROLE_KEY` (opcional) | mesmo valor da service_role (fallback aceito pelo código)             |
+
+## Passo final obrigatório
+
+Após salvar as variáveis no painel lateral, clicar em **Implantar**. Sem esse
+clique as variáveis não passam a valer no runtime, mesmo já salvas. Esse é o
+passo que normalmente é esquecido.
+
+## Validação objetiva
+
+Abrir no navegador:
+
+```
+https://<seu-dominio>/api/public/runtime
+```
+
+O JSON retornado deve mostrar:
+
+```json
+{
+  "hasSupabaseUrl": true,
+  "hasPublishableKey": true,
+  "hasServiceKey": true,
+  "serverProjectRef": "mrvplahmthguvrauzwpy",
+  "envComplete": true,
+  "missingEnv": []
+}
+```
+
+Se algum campo vier `false` ou `missingEnv` listar variáveis, repetir o cadastro
+no painel correto e clicar em **Implantar** novamente.
+
+Quando o JSON estiver verde, a tela `/usuarios` passa a listar os usuários
+cadastrados no Supabase, igual ao preview Lovable.
+
+## Por que a service_role nunca pode ir no bundle
+
+A `service_role` ignora RLS e tem poder total sobre o banco. Ela **não pode**
+ser exposta no frontend (bundle do navegador). Por isso ela só vive em
+`process.env` no runtime do Worker, e por isso o cadastro manual no painel do
+Cloudflare é inevitável — não há atalho via código.
