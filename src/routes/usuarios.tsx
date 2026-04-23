@@ -59,6 +59,7 @@ function UsuariosPage() {
   if (!isAdmin) return <Navigate to="/" />;
 
   const users = usersQ.data?.users ?? [];
+  const loadError = usersQ.error instanceof Error ? usersQ.error.message : usersQ.isError ? "Falha ao carregar usuários." : null;
 
   return (
     <AppLayout>
@@ -76,6 +77,16 @@ function UsuariosPage() {
           </Dialog>
         </div>
 
+        {loadError && (
+          <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            <p className="font-medium">Não foi possível carregar a lista.</p>
+            <p className="mt-1 text-destructive/80">{loadError}</p>
+            <p className="mt-2 text-xs text-destructive/70">
+              Configure o secret <code className="font-mono">SERVICE_ROLE_KEY</code> em Project Settings → Secrets para habilitar a administração de usuários.
+            </p>
+          </div>
+        )}
+
         <div className="rounded-lg border border-border bg-surface overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-muted/50 text-[12px] uppercase tracking-wider text-muted-foreground">
@@ -91,7 +102,7 @@ function UsuariosPage() {
               {usersQ.isLoading ? (
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin inline" /></td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">Nenhum usuário ainda.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">{loadError ? "—" : "Nenhum usuário ainda."}</td></tr>
               ) : users.map(u => (
                 <tr key={u.id} className="border-t border-border hover:bg-muted/30">
                   <td className="px-4 py-3 font-medium">{u.nome || "—"}</td>
