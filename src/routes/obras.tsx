@@ -212,11 +212,11 @@ function ObrasPage() {
                     <td className="px-2 py-2.5"><FinalidadeBadge finalidade={o.finalidade} /></td>
                     <td className="px-2 py-2.5"><MaterialBadge tipo={o.material} /></td>
                     <td className="px-2 py-2.5 text-right tabular font-mono">{o.dn || "—"}</td>
-                    <td className="px-2 py-2.5 text-right"><InlineExtensao obra={o} /></td>
+                    <td className="px-2 py-2.5 text-right"><InlineExtensao obra={o} canEdit={canEdit(o)} /></td>
                     <td className="px-2 py-2.5"><PeriodoCell obra={o} /></td>
                     <td className="px-2 py-2.5"><StatusBadge status={o.status} /></td>
                     <td className="px-2 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
-                    <td className="px-2 py-2.5 text-center"><ObsCell obra={o} /></td>
+                    <td className="px-2 py-2.5 text-center"><ObsCell obra={o} canEdit={canEdit(o)} /></td>
                     <td className="px-3 py-2.5 text-right whitespace-nowrap">
                       {o.status !== "concluida" && (
                         <button
