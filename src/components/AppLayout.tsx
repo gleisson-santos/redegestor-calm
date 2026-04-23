@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { DeployDiagnostic } from "@/components/DeployDiagnostic";
+
 
 type NavTo =
   | "/" | "/urs" | "/obras" | "/obras/diario" | "/materiais"
