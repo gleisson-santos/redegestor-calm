@@ -1,58 +1,34 @@
 
 
-## Causa raiz confirmada
+## Remover diagnóstico e documentar configuração correta do Cloudflare
 
-O Worker `redegestor-calm` no Cloudflare é deste mesmo projeto (definido em `wrangler.jsonc`). A diferença é que:
+Funcionou. O domínio `gestor.controllserv.com.br` agora mostra `supabase url: sim`, `publishable key: sim`, `service key: sim` e lista os usuários. Confirmado: o problema era cadastro das variáveis no painel errado.
 
-- O **cliente do navegador** usa `SUPABASE_URL` e a chave pública **hardcoded** em `src/integrations/supabase/client.ts`. Por isso todas as outras telas funcionam — elas leem direto do Supabase via RLS.
-- As **server functions** (`listUsers`, `createUser`, etc.) dependem 100% de `process.env.SUPABASE_URL`, `process.env.SUPABASE_PUBLISHABLE_KEY` e `process.env.SUPABASE_SERVICE_ROLE_KEY`/`SERVICE_ROLE_KEY` no runtime do Worker.
+### 1. Remover o badge de diagnóstico da interface
+- Em `src/components/AppLayout.tsx`, remover o import e o uso de `<DeployDiagnostic />` da topbar.
+- Excluir o arquivo `src/components/DeployDiagnostic.tsx`.
+- Manter o endpoint `/api/public/runtime` ativo (útil para futura verificação rápida via URL, sem poluir a UI).
 
-Como o seu Worker no Cloudflare **não tem essas variáveis configuradas**, qualquer chamada para a área de Usuários falha silenciosamente ou volta vazia, mesmo o app renderizando o resto normalmente.
+### 2. Atualizar `.lovable/plan.md` com a instrução definitiva
+Substituir o conteúdo do arquivo por um guia objetivo, registrando o que foi descoberto e como reproduzir a configuração correta:
 
-## O que você precisa fazer no Cloudflare (manual, fora do código)
-
-No painel do Cloudflare, em Workers & Pages → `redegestor-calm` → Settings → Variables and Secrets, cadastrar como **Secret** (não Variable):
-
-- `SUPABASE_URL` = `https://mrvplahmthguvrauzwpy.supabase.co`
-- `SUPABASE_PUBLISHABLE_KEY` = mesma anon/publishable key do projeto Supabase
-- `SUPABASE_SERVICE_ROLE_KEY` = service role key do projeto (Supabase Dashboard → Project Settings → API → `service_role`)
-- opcional: `SERVICE_ROLE_KEY` com o mesmo valor (fallback que o código já aceita)
-
-Depois, fazer um novo deploy do Worker para aplicar as variáveis.
-
-Sem esse passo, **nenhuma alteração de código resolve**, porque o problema é ausência de credenciais no runtime do Cloudflare.
-
-## O que será feito no código para te ajudar a confirmar isso
-
-1. **Endurecer mensagens das server functions de usuários**
-   - Em `src/server/users.ts`, detectar explicitamente se `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` ou a service role estão ausentes.
-   - Em vez de quebrar com erro genérico, retornar um diagnóstico estruturado dizendo exatamente quais variáveis faltam no runtime atual.
-
-2. **Mostrar essa falha na tela `/usuarios`**
-   - Em `src/routes/usuarios.tsx`, quando a resposta vier marcando “credenciais ausentes no servidor”, exibir um alerta vermelho explícito:
-     - “Este deploy (host X) não tem as variáveis Supabase configuradas no Cloudflare. Cadastre SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY e SUPABASE_SERVICE_ROLE_KEY no Worker.”
-   - Não cair mais para “Nenhum usuário ainda.” quando o problema é configuração.
-
-3. **Expandir `/api/public/runtime`**
-   - Já reporta `serviceKey: sim/não`. Adicionar também:
-     - `hasSupabaseUrl`
-     - `hasPublishableKey`
-   - Assim, abrir `https://redegestor-calm.jsgleisson9350.workers.dev/api/public/runtime` mostra na hora se as três variáveis existem no Cloudflare. Esse é o teste objetivo para confirmar a causa.
-
-4. **Refletir o estado no badge global**
-   - O `DeployDiagnostic` no topbar mudará para vermelho quando o servidor reportar variáveis Supabase ausentes, em qualquer página, não só em `/usuarios`.
+- **Causa**: variáveis cadastradas em "Build → Variáveis e segredos" só valem em build-time. As server functions de admin leem `process.env` em **runtime** do Worker, que vem de outro painel.
+- **Local correto**: Cloudflare → Workers & Pages → `redegestor-calm` → **Configurações → Variáveis e segredos** (não a aba Build).
+- **Variáveis obrigatórias** (todas como tipo **Segredo**):
+  - `SUPABASE_URL` = `https://mrvplahmthguvrauzwpy.supabase.co`
+  - `SUPABASE_PUBLISHABLE_KEY` = anon/publishable key do Supabase
+  - `SUPABASE_SERVICE_ROLE_KEY` = service_role key (Supabase Dashboard → Project Settings → API → `service_role`)
+  - `SERVICE_ROLE_KEY` = mesmo valor da service_role (fallback aceito pelo código)
+- **Passo final**: clicar em **Implantar** no painel lateral após salvar — sem isso as variáveis não passam a valer.
+- **Validação**: abrir `https://<dominio>/api/public/runtime` e conferir `hasSupabaseUrl: true`, `hasPublishableKey: true`, `hasServiceKey: true`, `serverProjectRef: "mrvplahmthguvrauzwpy"`.
 
 ### Arquivos previstos
-- `src/server/users.ts`
-- `src/routes/usuarios.tsx`
-- `src/routes/api.public.runtime.ts`
-- `src/components/DeployDiagnostic.tsx`
+- `src/components/AppLayout.tsx` (remover uso do diagnóstico)
+- `src/components/DeployDiagnostic.tsx` (excluir)
+- `.lovable/plan.md` (reescrever como guia de configuração)
 
 ### Resultado esperado
-- No preview Lovable: continua tudo verde, usuários aparecem.
-- No Cloudflare Worker: a tela de Usuários para de mentir “vazio” e passa a dizer claramente qual variável falta.
-- Após você cadastrar os secrets no Cloudflare e refazer o deploy, a lista de usuários passa a aparecer também lá, igual ao preview.
-
-### Detalhe técnico
-O frontend funciona em qualquer host porque a URL/anon key estão fixas no bundle. As server functions de admin não podem usar esse atalho: precisam do `service_role`, que **nunca** pode ir no bundle do navegador. Por isso o Worker exige as três variáveis configuradas no painel do Cloudflare. O código já está correto — falta apenas o ambiente do deploy receber as credenciais.
+- Topbar limpa, sem o badge de build.
+- Endpoint `/api/public/runtime` continua disponível para inspeção pontual.
+- `.lovable/plan.md` passa a servir como referência permanente para configurar qualquer novo deploy do Worker no Cloudflare.
 
