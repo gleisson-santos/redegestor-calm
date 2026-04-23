@@ -7,15 +7,18 @@ import type { Database } from './types';
 
 function createSupabaseAdminClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Aceita SERVICE_ROLE_KEY como fallback porque, no Lovable Cloud, secrets com prefixo
+  // SUPABASE_ são reservados e não podem ser criados manualmente pelo usuário.
+  const SERVICE_ROLE_KEY =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY;
 
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
     throw new Error(
-      'Missing Supabase server environment variables. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set.'
+      'Chave de serviço Supabase ausente. Adicione o secret SERVICE_ROLE_KEY (Project Settings → API → service_role) no Lovable.'
     );
   }
 
-  return createClient<Database>(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  return createClient<Database>(SUPABASE_URL, SERVICE_ROLE_KEY, {
     auth: {
       storage: undefined,
       persistSession: false,
