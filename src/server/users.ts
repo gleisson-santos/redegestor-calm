@@ -155,12 +155,61 @@ export interface ListUsersDiagnostics {
   host: string;
   buildStamp: string;
   hint?: string;
+  envComplete: boolean;
+  missingEnv: string[];
+  hasSupabaseUrl: boolean;
+  hasPublishableKey: boolean;
+  hasServiceKey: boolean;
+}
+
+function checkEnv() {
+  const hasUrl = !!process.env.SUPABASE_URL;
+  const hasPub = !!process.env.SUPABASE_PUBLISHABLE_KEY;
+  const hasService = !!(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SERVICE_ROLE_KEY);
+  const missing: string[] = [];
+  if (!hasUrl) missing.push("SUPABASE_URL");
+  if (!hasPub) missing.push("SUPABASE_PUBLISHABLE_KEY");
+  if (!hasService) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  return { hasUrl, hasPub, hasService, missing, complete: missing.length === 0 };
 }
 
 export const listUsers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ users: AdminUserRow[]; warning?: string; diagnostics: ListUsersDiagnostics }> => {
     logEnv("listUsers");
+    const env = checkEnv();
+    let host = "?";
+    try {
+      host = getRequestHost() || getRequestHeader("host") || "?";
+    } catch {
+      host = "?";
+    }
+    if (!env.complete) {
+      const projectRef = extractProjectRef(process.env.SUPABASE_URL);
+      const hint = `Este deploy (host=${host}) está sem as variáveis Supabase no runtime do Worker. Faltando: ${env.missing.join(", ")}. Cadastre como Secret no painel do Cloudflare (Workers & Pages → Settings → Variables and Secrets) e refaça o deploy.`;
+      return {
+        users: [],
+        warning: "Variáveis Supabase ausentes no servidor.",
+        diagnostics: {
+          projectRef,
+          authCount: 0,
+          profilesCount: 0,
+          rolesCount: 0,
+          shownCount: 0,
+          expectedProjectRef: EXPECTED_PROJECT_REF,
+          projectMismatch: false,
+          suspicious: true,
+          host,
+          buildStamp: BUILD_STAMP,
+          hint,
+          envComplete: false,
+          missingEnv: env.missing,
+          hasSupabaseUrl: env.hasUrl,
+          hasPublishableKey: env.hasPub,
+          hasServiceKey: env.hasService,
+        },
+      };
+    }
     await assertAdmin(context.userId);
     const sb = supabaseAdmin as any;
 
@@ -216,12 +265,6 @@ export const listUsers = createServerFn({ method: "POST" })
 
     const projectRef = extractProjectRef(process.env.SUPABASE_URL);
     const projectMismatch = projectRef !== "?" && projectRef !== EXPECTED_PROJECT_REF;
-    let host = "?";
-    try {
-      host = getRequestHost() || getRequestHeader("host") || "?";
-    } catch {
-      host = "?";
-    }
     const suspicious =
       authUsers.length === 0 || projectMismatch || (authUsers.length > 0 && profiles.length === 0);
     let hint: string | undefined;
@@ -245,6 +288,11 @@ export const listUsers = createServerFn({ method: "POST" })
       host,
       buildStamp: BUILD_STAMP,
       hint,
+      envComplete: true,
+      missingEnv: [],
+      hasSupabaseUrl: env.hasUrl,
+      hasPublishableKey: env.hasPub,
+      hasServiceKey: env.hasService,
     };
 
     console.log(`[users:listUsers] diag=${JSON.stringify(diagnostics)}`);

@@ -24,6 +24,7 @@ import { Route as ObrasDiarioRouteImport } from './routes/obras_.diario'
 import { Route as EncargosRelatoriosRouteImport } from './routes/encargos.relatorios'
 import { Route as EncargosMedicoesRouteImport } from './routes/encargos.medicoes'
 import { Route as EncargosLancamentosRouteImport } from './routes/encargos.lancamentos'
+import { Route as ApiPublicRuntimeRouteImport } from './routes/api.public.runtime'
 
 const UsuariosRoute = UsuariosRouteImport.update({
   id: '/usuarios',
@@ -100,6 +101,11 @@ const EncargosLancamentosRoute = EncargosLancamentosRouteImport.update({
   path: '/lancamentos',
   getParentRoute: () => EncargosRoute,
 } as any)
+const ApiPublicRuntimeRoute = ApiPublicRuntimeRouteImport.update({
+  id: '/api/public/runtime',
+  path: '/api/public/runtime',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
   '/obras/diario': typeof ObrasDiarioRoute
   '/encargos/': typeof EncargosIndexRoute
+  '/api/public/runtime': typeof ApiPublicRuntimeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -133,6 +140,7 @@ export interface FileRoutesByTo {
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
   '/obras/diario': typeof ObrasDiarioRoute
   '/encargos': typeof EncargosIndexRoute
+  '/api/public/runtime': typeof ApiPublicRuntimeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/encargos/relatorios': typeof EncargosRelatoriosRoute
   '/obras_/diario': typeof ObrasDiarioRoute
   '/encargos/': typeof EncargosIndexRoute
+  '/api/public/runtime': typeof ApiPublicRuntimeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/encargos/relatorios'
     | '/obras/diario'
     | '/encargos/'
+    | '/api/public/runtime'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/encargos/relatorios'
     | '/obras/diario'
     | '/encargos'
+    | '/api/public/runtime'
   id:
     | '__root__'
     | '/'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/encargos/relatorios'
     | '/obras_/diario'
     | '/encargos/'
+    | '/api/public/runtime'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -217,6 +229,7 @@ export interface RootRouteChildren {
   UrsRoute: typeof UrsRoute
   UsuariosRoute: typeof UsuariosRoute
   ObrasDiarioRoute: typeof ObrasDiarioRoute
+  ApiPublicRuntimeRoute: typeof ApiPublicRuntimeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -326,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EncargosLancamentosRouteImport
       parentRoute: typeof EncargosRoute
     }
+    '/api/public/runtime': {
+      id: '/api/public/runtime'
+      path: '/api/public/runtime'
+      fullPath: '/api/public/runtime'
+      preLoaderRoute: typeof ApiPublicRuntimeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -359,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   UrsRoute: UrsRoute,
   UsuariosRoute: UsuariosRoute,
   ObrasDiarioRoute: ObrasDiarioRoute,
+  ApiPublicRuntimeRoute: ApiPublicRuntimeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
