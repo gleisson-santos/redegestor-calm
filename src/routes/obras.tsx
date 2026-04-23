@@ -24,6 +24,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+
+function permissionDeniedMessage(ur: string): string {
+  return `Você não tem permissão para editar dados da UR ${ur}`;
+}
 
 export const Route = createFileRoute("/obras")({
   head: () => ({
@@ -39,6 +44,9 @@ type SortKey = "prioridade" | "extensaoM" | "ur" | "dn";
 
 function ObrasPage() {
   const qc = useQueryClient();
+  const { profile, role } = useAuth();
+  const isAdmin = role === "admin";
+  const canEdit = (obra: Obra) => isAdmin || profile?.ur === obra.ur;
   const { data: obras = [], isLoading } = useQuery({ queryKey: ["obras"], queryFn: fetchObras });
 
   const [query, setQuery] = useState("");
@@ -65,6 +73,14 @@ function ObrasPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["obras"] }); toast.success("Obra marcada como executada."); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const tryEdit = (obra: Obra, action: () => void) => {
+    if (!canEdit(obra)) {
+      toast.error(permissionDeniedMessage(obra.ur));
+      return;
+    }
+    action();
+  };
 
   const filtered = useMemo(() => {
     let r: Obra[] = obras.filter(o => {
@@ -196,18 +212,18 @@ function ObrasPage() {
                     <td className="px-2 py-2.5"><FinalidadeBadge finalidade={o.finalidade} /></td>
                     <td className="px-2 py-2.5"><MaterialBadge tipo={o.material} /></td>
                     <td className="px-2 py-2.5 text-right tabular font-mono">{o.dn || "—"}</td>
-                    <td className="px-2 py-2.5 text-right"><InlineExtensao obra={o} /></td>
+                    <td className="px-2 py-2.5 text-right"><InlineExtensao obra={o} canEdit={canEdit(o)} /></td>
                     <td className="px-2 py-2.5"><PeriodoCell obra={o} /></td>
                     <td className="px-2 py-2.5"><StatusBadge status={o.status} /></td>
                     <td className="px-2 py-2.5"><AlvaraBadge status={o.alvaraStatus} /></td>
-                    <td className="px-2 py-2.5 text-center"><ObsCell obra={o} /></td>
+                    <td className="px-2 py-2.5 text-center"><ObsCell obra={o} canEdit={canEdit(o)} /></td>
                     <td className="px-3 py-2.5 text-right whitespace-nowrap">
                       {o.status !== "concluida" && (
                         <button
-                          onClick={() => execMut.mutate(o.id)}
-                          disabled={execMut.isPending}
-                          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-success-soft text-muted-foreground hover:text-success disabled:opacity-50"
-                          title="Marcar serviço como executado (define término = hoje)"
+                          onClick={() => tryEdit(o, () => execMut.mutate(o.id))}
+                          disabled={execMut.isPending || !canEdit(o)}
+                          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-success-soft text-muted-foreground hover:text-success disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                          title={canEdit(o) ? "Marcar serviço como executado (define término = hoje)" : permissionDeniedMessage(o.ur)}
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </button>
@@ -215,10 +231,20 @@ function ObrasPage() {
                       <button onClick={() => setHistorico(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-accent" title="Ver histórico">
                         <History className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => setEditing(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar">
+                      <button
+                        onClick={() => tryEdit(o, () => setEditing(o))}
+                        disabled={!canEdit(o)}
+                        className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                        title={canEdit(o) ? "Editar" : permissionDeniedMessage(o.ur)}
+                      >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => setDeleting(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-destructive-soft text-muted-foreground hover:text-destructive" title="Excluir">
+                      <button
+                        onClick={() => tryEdit(o, () => setDeleting(o))}
+                        disabled={!canEdit(o)}
+                        className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-destructive-soft text-muted-foreground hover:text-destructive disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                        title={canEdit(o) ? "Excluir" : permissionDeniedMessage(o.ur)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </td>
@@ -372,7 +398,7 @@ function ObraDialogContent({ obra, onClose }: { obra: Obra | null; onClose: () =
 }
 
 /* ---------- Edição inline da extensão ---------- */
-function InlineExtensao({ obra }: { obra: Obra }) {
+function InlineExtensao({ obra, canEdit }: { obra: Obra; canEdit: boolean }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState<string>(String(obra.extensaoM));
@@ -385,12 +411,22 @@ function InlineExtensao({ obra }: { obra: Obra }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const handleEnter = () => {
+    if (!canEdit) {
+      toast.error(permissionDeniedMessage(obra.ur));
+      return;
+    }
+    setVal(String(obra.extensaoM));
+    setEditing(true);
+  };
+
   if (!editing) {
     return (
-      <button onClick={() => { setVal(String(obra.extensaoM)); setEditing(true); }}
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-muted tabular font-mono font-semibold text-right group">
+      <button onClick={handleEnter}
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-muted tabular font-mono font-semibold text-right group"
+        title={canEdit ? "Editar extensão" : permissionDeniedMessage(obra.ur)}>
         <span>{obra.extensaoM.toLocaleString("pt-BR")} m</span>
-        <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60" />
+        {canEdit && <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-60" />}
       </button>
     );
   }
@@ -420,7 +456,7 @@ function PeriodoCell({ obra }: { obra: Obra }) {
 }
 
 /* ---------- Observação rápida (popover) ---------- */
-function ObsCell({ obra }: { obra: Obra }) {
+function ObsCell({ obra, canEdit }: { obra: Obra; canEdit: boolean }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(obra.observacoes ?? "");
@@ -431,21 +467,35 @@ function ObsCell({ obra }: { obra: Obra }) {
     onError: (e: Error) => toast.error(e.message),
   });
   const has = !!obra.observacoes && obra.observacoes.trim().length > 0;
+  const handleOpenChange = (next: boolean) => {
+    if (next && !canEdit && !has) {
+      toast.error(permissionDeniedMessage(obra.ur));
+      return;
+    }
+    setOpen(next);
+  };
+  const handleSave = () => {
+    if (!canEdit) {
+      toast.error(permissionDeniedMessage(obra.ur));
+      return;
+    }
+    mut.mutate();
+  };
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className={cn("inline-flex items-center justify-center h-7 w-7 rounded transition-colors",
           has ? "bg-info-soft text-info hover:bg-info/20" : "text-muted-foreground hover:bg-muted")}
-          title={has ? obra.observacoes! : "Adicionar observação"}>
+          title={has ? obra.observacoes! : (canEdit ? "Adicionar observação" : permissionDeniedMessage(obra.ur))}>
           <MessageSquare className="h-3.5 w-3.5" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-3" align="end">
         <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mb-2">Observações do gestor</div>
-        <Textarea rows={4} placeholder="Anotações legais, contatos, pendências…" value={text} onChange={e => setText(e.target.value)} />
+        <Textarea rows={4} placeholder="Anotações legais, contatos, pendências…" value={text} onChange={e => setText(e.target.value)} disabled={!canEdit} />
         <div className="flex justify-end gap-2 mt-2">
-          <Button size="sm" variant="ghost" onClick={() => { setText(obra.observacoes ?? ""); setOpen(false); }}>Cancelar</Button>
-          <Button size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>{mut.isPending ? "Salvando…" : "Salvar"}</Button>
+          <Button size="sm" variant="ghost" onClick={() => { setText(obra.observacoes ?? ""); setOpen(false); }}>Fechar</Button>
+          <Button size="sm" onClick={handleSave} disabled={mut.isPending || !canEdit}>{mut.isPending ? "Salvando…" : "Salvar"}</Button>
         </div>
       </PopoverContent>
     </Popover>
