@@ -388,8 +388,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
               <div className="flex-1" />
 
-              {isAdmin && <DeployDiagnostic />}
-
               <Button variant="ghost" size="icon" className="relative" aria-label="Notificações">
                 <Bell className="h-5 w-5 text-muted-foreground" />
                 <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
