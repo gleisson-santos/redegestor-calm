@@ -181,13 +181,8 @@ function LoginPage() {
             </div>
             <h2 className="text-3xl font-semibold tracking-tight">RedeGestor</h2>
             <p className="mt-2 text-sm text-white/70 max-w-sm leading-relaxed">
-              Plataforma de gestão de obras, materiais e medições para as Unidades Regionais — UMB, UML e UMF.
+              Plataforma de gestão de obras, materiais e medições.
             </p>
-            <div className="mt-6 flex gap-2 text-[11px] text-white/60">
-              <span className="rounded-full bg-white/10 px-2 py-1 ring-1 ring-white/15">UMB</span>
-              <span className="rounded-full bg-white/10 px-2 py-1 ring-1 ring-white/15">UML</span>
-              <span className="rounded-full bg-white/10 px-2 py-1 ring-1 ring-white/15">UMF</span>
-            </div>
           </div>
         </div>
 
