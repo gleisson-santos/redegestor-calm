@@ -66,7 +66,7 @@ function UsuariosPage() {
       <div className="p-6 lg:p-8 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-accent">Usuários</h1>
             <p className="text-sm text-muted-foreground mt-1">Gerencie quem tem acesso ao sistema e a qual UR pertence.</p>
           </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
