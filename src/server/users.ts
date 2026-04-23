@@ -200,16 +200,21 @@ export const listUsers = createServerFn({ method: "POST" })
     const semProfile = authUsers.filter(u => !profileMap.has(u.id)).length;
     if (semProfile > 0) warning = `${semProfile} usuário(s) sem profile sincronizado.`;
 
-    const projectRef =
-      (process.env.SUPABASE_URL ?? "").match(/https:\/\/([^.]+)\.supabase\.co/)?.[1] ?? "?";
+    const projectRef = extractProjectRef(process.env.SUPABASE_URL);
     const projectMismatch = projectRef !== "?" && projectRef !== EXPECTED_PROJECT_REF;
+    let host = "?";
+    try {
+      host = getRequestHost() || getRequestHeader("host") || "?";
+    } catch {
+      host = "?";
+    }
     const suspicious =
       authUsers.length === 0 || projectMismatch || (authUsers.length > 0 && profiles.length === 0);
     let hint: string | undefined;
     if (projectMismatch) {
-      hint = `O runtime do deploy está apontando para o projeto Supabase "${projectRef}", mas o app espera "${EXPECTED_PROJECT_REF}". Revise SUPABASE_URL/SERVICE_ROLE_KEY no Cloudflare.`;
+      hint = `O runtime do deploy (host=${host}) está apontando para o projeto Supabase "${projectRef}", mas o app espera "${EXPECTED_PROJECT_REF}". Revise SUPABASE_URL/SERVICE_ROLE_KEY no Cloudflare e refaça o deploy.`;
     } else if (authUsers.length === 0) {
-      hint = `O projeto "${projectRef}" respondeu com 0 usuários no Auth. Provavelmente o deploy está conectado a um Supabase vazio (credenciais de outro projeto).`;
+      hint = `O projeto "${projectRef}" respondeu com 0 usuários no Auth (host=${host}). Provavelmente o deploy está conectado a um Supabase vazio ou o domínio "${host}" está servindo um build antigo.`;
     } else if (profiles.length === 0) {
       hint = `Existem ${authUsers.length} usuário(s) no Auth, mas nenhum profile. Verifique o trigger handle_new_user.`;
     }
@@ -223,6 +228,8 @@ export const listUsers = createServerFn({ method: "POST" })
       expectedProjectRef: EXPECTED_PROJECT_REF,
       projectMismatch,
       suspicious,
+      host,
+      buildStamp: BUILD_STAMP,
       hint,
     };
 
