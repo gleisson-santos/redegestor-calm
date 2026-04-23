@@ -4,8 +4,10 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHost, getRequestHeader } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { EXPECTED_PROJECT_REF, BUILD_STAMP, extractProjectRef } from "@/integrations/supabase/config";
 
 interface CreateUserInput {
   email: string;
@@ -136,10 +138,10 @@ export interface ListUsersDiagnostics {
   expectedProjectRef: string;
   projectMismatch: boolean;
   suspicious: boolean;
+  host: string;
+  buildStamp: string;
   hint?: string;
 }
-
-const EXPECTED_PROJECT_REF = "mrvplahmthguvrauzwpy";
 
 export const listUsers = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
