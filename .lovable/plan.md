@@ -1,56 +1,74 @@
 
-## Corrigir a inconsistência de usuários no deploy Cloudflare
+## Corrigir o “vazio silencioso” na tela de Usuários
 
-### Diagnóstico mais provável
-Pelas telas e pelo código atual, o problema parece ser um destes dois cenários:
+### O que o comportamento atual indica
+O fato de a tela mostrar apenas **“Nenhum usuário ainda.”** sem banner de erro é um sinal importante:
 
-1. **As credenciais do runtime do Cloudflare estão diferentes do projeto Supabase usado pelo app no navegador**
-   - O frontend usa `src/integrations/supabase/client.ts`, que está com URL/key fixas do projeto.
-   - Já as server functions de usuários usam `process.env` em `src/integrations/supabase/auth-middleware.ts` e `src/integrations/supabase/client.server.ts`.
-   - Isso explica por que obras/materiais funcionam no deploy, mas `/usuarios` não.
+- a query `listUsers()` está **respondendo com sucesso**
+- mas ela está retornando **lista vazia**
+- isso é mais compatível com **runtime do deploy apontando para um ambiente/projeto válido porém vazio**, do que com “chave ausente” ou “token inválido”
 
-2. **O fluxo de criação depende do trigger `handle_new_user`, mas o código não valida se `profiles` e `user_roles` foram realmente criados**
-   - Em `src/server/users.ts`, `createUser` cria o usuário no Auth e depois só faz `update` no profile, sem conferir se o profile existe.
-   - Se o trigger falhar ou houver usuários antigos sem `profiles`, o toast mostra “criado”, mas a lista continua vazia porque `listUsers` monta a tabela a partir de `profiles`.
+Se fosse falta de `SERVICE_ROLE_KEY`, token inválido, ou erro de autenticação, a UI atual tenderia a mostrar **erro**, não tabela vazia.
 
-### O que será feito
-1. **Instrumentar e endurecer as server functions de usuários**
-   - Adicionar logs claros em `src/server/users.ts` para registrar:
-     - URL/projeto usado no runtime
-     - quantidade de registros em `profiles`, `user_roles` e `auth.users`
-     - erros exatos de `createUser`, `listUsers`, `update`, `upsert`
-   - Verificar explicitamente o resultado de cada operação que hoje está sem checagem de erro.
+### O que será ajustado
 
-2. **Corrigir o fluxo de criação para não depender silenciosamente do trigger**
-   - Após `auth.admin.createUser`, conferir se existe linha em `profiles`.
-   - Se não existir, criar `profiles` manualmente via service role.
-   - Garantir também a existência da role padrão em `user_roles`.
-   - Só retornar sucesso depois que Auth + Profile + Role estiverem consistentes.
+1. **Adicionar diagnóstico explícito no retorno de `listUsers`**
+   - Incluir no retorno metadados seguros para debug:
+     - `projectRef` do runtime
+     - contagem de `auth.users`
+     - contagem de `profiles`
+     - contagem de `user_roles`
+     - quantidade final exibida
+   - Detectar o caso “sucesso com zero usuários” como **estado suspeito**, não como vazio normal.
 
-3. **Tornar `listUsers` mais resiliente**
-   - Se houver usuários em `auth.users` mas faltarem registros em `profiles`, retornar isso como erro diagnóstico em vez de simplesmente mostrar lista vazia.
-   - Opcionalmente ordenar e padronizar o merge entre `profiles`, `user_roles` e emails do Auth.
+2. **Melhorar a lógica de detecção no servidor**
+   - Em `src/server/users.ts`, tratar como diagnóstico especial quando:
+     - `auth.users = 0`
+     - `profiles = 0`
+     - `user_roles = 0`
+     - ou quando as contagens forem incoerentes
+   - Retornar uma mensagem clara do tipo:
+     - “O deploy está conectado a um projeto Supabase sem usuários”
+     - ou “As credenciais do runtime não parecem ser do mesmo projeto do app”
 
-4. **Melhorar a mensagem visual da página `/usuarios`**
-   - Em `src/routes/usuarios.tsx`, trocar o estado silencioso de “Nenhum usuário ainda” por uma mensagem mais útil quando houver falha de sincronização ou erro de ambiente.
-   - Exibir orientação específica se o runtime do Cloudflare estiver apontando para projeto/credenciais divergentes.
+3. **Mostrar esse diagnóstico na página `/usuarios`**
+   - Em `src/routes/usuarios.tsx`, trocar o estado silencioso de “Nenhum usuário ainda” por um bloco mais útil quando o vazio for suspeito.
+   - Exibir algo como:
+     - projeto detectado no servidor
+     - quantidade encontrada em `auth.users`, `profiles` e `user_roles`
+     - instrução objetiva para revisar as variáveis do Cloudflare
 
-5. **Se os dados estiverem incompletos no banco, aplicar backfill**
-   - Se a análise mostrar usuários existentes em `auth.users` sem correspondência em `profiles` ou `user_roles`, criar uma migration para preencher os registros faltantes com segurança.
+4. **Reduzir chance de divergência entre cliente e servidor**
+   - Centralizar a configuração pública do Supabase para que servidor e navegador usem a mesma referência pública do projeto sempre que possível.
+   - Manter apenas a chave de serviço dependente do ambiente.
+   - Isso evita cenário em que o navegador aponta para um projeto e o backend do deploy para outro.
 
-### Arquivos que devem ser ajustados
+5. **Adicionar logs mais objetivos para o deploy**
+   - Refinar os logs em `src/server/users.ts` para registrar:
+     - ref do projeto em uso
+     - contagens retornadas
+     - qual caminho de diagnóstico foi acionado
+   - Assim, no próximo teste, o problema aparece claramente no log do worker.
+
+### Arquivos previstos
 - `src/server/users.ts`
 - `src/routes/usuarios.tsx`
-- Possivelmente `supabase/migrations/*` se for necessário backfill de `profiles`/`user_roles`
+- possivelmente `src/integrations/supabase/client.server.ts`
+- possivelmente `src/integrations/supabase/auth-middleware.ts`
+- possivelmente um helper compartilhado de configuração Supabase
 
 ### Resultado esperado
-- O deploy Cloudflare passará a listar os usuários existentes.
-- Criar usuário só mostrará sucesso quando o usuário estiver realmente completo no sistema.
-- Se houver credencial errada no Cloudflare, a aplicação vai acusar isso de forma clara em vez de parecer “vazio”.
+Depois da correção, a tela de usuários vai parar de falhar de forma “silenciosa”:
+- se houver usuários, eles aparecem
+- se o deploy estiver apontando para credenciais/projeto incorretos, a própria tela vai dizer isso de forma objetiva
+- se houver inconsistência entre `auth.users`, `profiles` e `user_roles`, isso também ficará visível
 
-### Detalhe técnico importante
-Hoje o app tem uma separação crítica:
-- **Cliente/navegador**: usa Supabase fixo no código
-- **Server functions**: usam variáveis de ambiente do Cloudflare
+### Detalhe técnico
+Hoje o vazio da tabela é enganoso porque o frontend só diferencia:
+- **erro**
+- **lista vazia**
 
-Por isso, mesmo com o resto do sistema funcionando, a área de usuários pode quebrar isoladamente se o runtime estiver com credenciais incorretas ou se a sincronização `auth.users -> profiles/user_roles` estiver incompleta.
+Mas o seu caso parece ser um terceiro cenário:
+- **resposta bem-sucedida, porém vinda do ambiente errado ou inconsistente**
+
+A correção vai separar esse caso para não parecer que “não há usuários”, quando na prática o deploy é que não está enxergando o conjunto correto.
