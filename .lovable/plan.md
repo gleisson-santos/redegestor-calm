@@ -1,55 +1,56 @@
 
+## Corrigir a inconsistência de usuários no deploy Cloudflare
 
-## Atualizar guia `.md` com fluxo de publicação manual
+### Diagnóstico mais provável
+Pelas telas e pelo código atual, o problema parece ser um destes dois cenários:
 
-Adicionar uma nova seção ao arquivo `/mnt/documents/deploy-cloudflare-lovable.md` documentando o fluxo de branch `production` para controle manual de deploys, que acabamos de validar com sucesso.
+1. **As credenciais do runtime do Cloudflare estão diferentes do projeto Supabase usado pelo app no navegador**
+   - O frontend usa `src/integrations/supabase/client.ts`, que está com URL/key fixas do projeto.
+   - Já as server functions de usuários usam `process.env` em `src/integrations/supabase/auth-middleware.ts` e `src/integrations/supabase/client.server.ts`.
+   - Isso explica por que obras/materiais funcionam no deploy, mas `/usuarios` não.
 
-## O que será adicionado
+2. **O fluxo de criação depende do trigger `handle_new_user`, mas o código não valida se `profiles` e `user_roles` foram realmente criados**
+   - Em `src/server/users.ts`, `createUser` cria o usuário no Auth e depois só faz `update` no profile, sem conferir se o profile existe.
+   - Se o trigger falhar ou houver usuários antigos sem `profiles`, o toast mostra “criado”, mas a lista continua vazia porque `listUsers` monta a tabela a partir de `profiles`.
 
-Uma nova seção ao final do guia existente (mantendo todo o conteúdo atual intacto), contendo:
+### O que será feito
+1. **Instrumentar e endurecer as server functions de usuários**
+   - Adicionar logs claros em `src/server/users.ts` para registrar:
+     - URL/projeto usado no runtime
+     - quantidade de registros em `profiles`, `user_roles` e `auth.users`
+     - erros exatos de `createUser`, `listUsers`, `update`, `upsert`
+   - Verificar explicitamente o resultado de cada operação que hoje está sem checagem de erro.
 
-### 1. Introdução à estratégia
-Explicação curta do "porquê": separar edição contínua (Lovable → `main`) de publicação controlada (merge → `production` → Cloudflare).
+2. **Corrigir o fluxo de criação para não depender silenciosamente do trigger**
+   - Após `auth.admin.createUser`, conferir se existe linha em `profiles`.
+   - Se não existir, criar `profiles` manualmente via service role.
+   - Garantir também a existência da role padrão em `user_roles`.
+   - Só retornar sucesso depois que Auth + Profile + Role estiverem consistentes.
 
-### 2. Diagrama do fluxo
-Bloco ASCII mostrando os dois ambientes:
+3. **Tornar `listUsers` mais resiliente**
+   - Se houver usuários em `auth.users` mas faltarem registros em `profiles`, retornar isso como erro diagnóstico em vez de simplesmente mostrar lista vazia.
+   - Opcionalmente ordenar e padronizar o merge entre `profiles`, `user_roles` e emails do Auth.
 
-```text
-Lovable edita  →  main         (não publica)
-Você decide    →  merge para production  →  Cloudflare faz deploy
-```
+4. **Melhorar a mensagem visual da página `/usuarios`**
+   - Em `src/routes/usuarios.tsx`, trocar o estado silencioso de “Nenhum usuário ainda” por uma mensagem mais útil quando houver falha de sincronização ou erro de ambiente.
+   - Exibir orientação específica se o runtime do Cloudflare estiver apontando para projeto/credenciais divergentes.
 
-### 3. Setup inicial (passo a passo único)
-- **Passo 1** — Criar branch `production` no GitHub a partir da `main`
-- **Passo 2** — No Cloudflare (Workers e Pages → projeto → Configurações → Build → Controle da ramificação):
-  - Trocar ramificação de produção: `main` → `production`
-  - Desmarcar "Compilações para ramificações de não produção"
+5. **Se os dados estiverem incompletos no banco, aplicar backfill**
+   - Se a análise mostrar usuários existentes em `auth.users` sem correspondência em `profiles` ou `user_roles`, criar uma migration para preencher os registros faltantes com segurança.
 
-### 4. Fluxo do dia a dia (publicação manual)
-- Edita normalmente no Lovable (vai pra `main`, não publica)
-- Quando quiser publicar, abre o link de atalho:
-  ```text
-  https://github.com/<usuario>/<repo>/compare/production...main
-  ```
-- Clica em "Create pull request" → "Merge pull request" → "Confirm merge"
-- Cloudflare detecta e faz o deploy em ~1-2 min
+### Arquivos que devem ser ajustados
+- `src/server/users.ts`
+- `src/routes/usuarios.tsx`
+- Possivelmente `supabase/migrations/*` se for necessário backfill de `profiles`/`user_roles`
 
-### 5. Prompt curto para reaproveitar em novos projetos
-Um prompt pronto para o usuário colar em qualquer projeto Lovable novo, pedindo para configurar o mesmo fluxo:
+### Resultado esperado
+- O deploy Cloudflare passará a listar os usuários existentes.
+- Criar usuário só mostrará sucesso quando o usuário estiver realmente completo no sistema.
+- Se houver credencial errada no Cloudflare, a aplicação vai acusar isso de forma clara em vez de parecer “vazio”.
 
-> "Quero usar fluxo de publicação manual no Cloudflare. Me dê o passo a passo para criar uma branch `production` no GitHub e configurar o Cloudflare Workers para só fazer deploy quando eu fizer merge de `main` para `production`. Inclua o link de atalho do PR."
+### Detalhe técnico importante
+Hoje o app tem uma separação crítica:
+- **Cliente/navegador**: usa Supabase fixo no código
+- **Server functions**: usam variáveis de ambiente do Cloudflare
 
-### 6. Tabela comparativa rápida
-Mini tabela: auto-deploy vs branch `production` (quando vale a pena cada um).
-
-### 7. Troubleshooting curto
-- "Fiz merge e não publicou" → verificar se a branch de produção no Cloudflare é mesmo `production`
-- "Não aparece o banner de PR no GitHub" → usar o link `/compare/production...main` direto
-- "Quero voltar pro auto-deploy" → trocar de volta produção para `main` no Cloudflare
-
-## Arquivo afetado
-- `/mnt/documents/deploy-cloudflare-lovable.md` — nova versão `_v2` para preservar a versão anterior como baseline
-
-## Entrega
-Após escrever, emitir tag `<lov-artifact>` apontando para o novo arquivo `.md` para você baixar.
-
+Por isso, mesmo com o resto do sistema funcionando, a área de usuários pode quebrar isoladamente se o runtime estiver com credenciais incorretas ou se a sincronização `auth.users -> profiles/user_roles` estiver incompleta.
