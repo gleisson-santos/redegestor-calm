@@ -101,8 +101,22 @@ export const createUser = createServerFn({ method: "POST" })
       throw new Error(`Falha ao atribuir papel: ${roleInsErr.message}`);
     }
 
-    console.log(`[users:createUser] ok id=${newId} ur=${data.ur} role=${desiredRole}`);
-    return { id: newId };
+    // Verificação pós-criação: o usuário precisa aparecer em auth.users.
+    let verified = false;
+    try {
+      const { data: check } = await supabaseAdmin.auth.admin.getUserById(newId);
+      verified = !!check?.user;
+    } catch (e) {
+      console.error("[users:createUser] verify erro:", e);
+    }
+    const projectRef = extractProjectRef(process.env.SUPABASE_URL);
+    console.log(`[users:createUser] ok id=${newId} ur=${data.ur} role=${desiredRole} verified=${verified} project=${projectRef}`);
+    if (!verified) {
+      throw new Error(
+        `Usuário foi criado no Auth (id=${newId}) mas não foi possível confirmá-lo no projeto "${projectRef}". O domínio atual pode estar em um deploy antigo ou apontando para outro Supabase.`
+      );
+    }
+    return { id: newId, projectRef, buildStamp: BUILD_STAMP };
   });
 
 export const deleteUser = createServerFn({ method: "POST" })
