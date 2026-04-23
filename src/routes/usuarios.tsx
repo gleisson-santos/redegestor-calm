@@ -60,7 +60,9 @@ function UsuariosPage() {
 
   const users = usersQ.data?.users ?? [];
   const warning = usersQ.data?.warning;
+  const diag = usersQ.data?.diagnostics;
   const loadError = usersQ.error instanceof Error ? usersQ.error.message : usersQ.isError ? "Falha ao carregar usuários." : null;
+  const showDiagnostic = !loadError && diag?.suspicious;
 
   return (
     <AppLayout>
@@ -82,16 +84,33 @@ function UsuariosPage() {
           <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             <p className="font-medium">Não foi possível carregar a lista.</p>
             <p className="mt-1 text-destructive/80 break-words">{loadError}</p>
-            <p className="mt-2 text-xs text-destructive/70">
-              Verifique no Cloudflare se as variáveis <code className="font-mono">SUPABASE_URL</code>,{" "}
-              <code className="font-mono">SUPABASE_PUBLISHABLE_KEY</code> e{" "}
-              <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> apontam para o mesmo projeto Supabase usado pelo app{" "}
-              (<code className="font-mono">mrvplahmthguvrauzwpy</code>). Se forem credenciais de outro projeto, a lista virá vazia mesmo havendo usuários.
-            </p>
           </div>
         )}
 
-        {warning && !loadError && (
+        {showDiagnostic && diag && (
+          <div className="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
+            <p className="font-semibold text-foreground">Diagnóstico do ambiente do servidor</p>
+            {diag.hint && <p className="mt-1 text-foreground/90">{diag.hint}</p>}
+            <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-muted-foreground">
+              <li>projeto detectado: <span className="text-foreground">{diag.projectRef}</span></li>
+              <li>projeto esperado: <span className="text-foreground">{diag.expectedProjectRef}</span></li>
+              <li>auth.users: <span className="text-foreground">{diag.authCount}</span></li>
+              <li>profiles: <span className="text-foreground">{diag.profilesCount}</span></li>
+              <li>user_roles: <span className="text-foreground">{diag.rolesCount}</span></li>
+              <li>exibidos: <span className="text-foreground">{diag.shownCount}</span></li>
+            </ul>
+            {diag.projectMismatch && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Atualize no Cloudflare as variáveis <code className="font-mono">SUPABASE_URL</code>,{" "}
+                <code className="font-mono">SUPABASE_PUBLISHABLE_KEY</code> e{" "}
+                <code className="font-mono">SERVICE_ROLE_KEY</code> para o projeto{" "}
+                <code className="font-mono">{diag.expectedProjectRef}</code> e refaça o deploy.
+              </p>
+            )}
+          </div>
+        )}
+
+        {warning && !loadError && !showDiagnostic && (
           <div className="mb-4 rounded-lg border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
             <p className="font-medium">Atenção: {warning}</p>
             <p className="mt-1 text-xs text-muted-foreground">
