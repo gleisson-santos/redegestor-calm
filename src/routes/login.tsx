@@ -193,7 +193,7 @@ function LoginPage() {
 
         {/* Lado direito — formulário */}
         <div className="p-8 sm:p-12 flex flex-col justify-center">
-          <div className="mb-8">
+          <div className="mb-8 text-center">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">Bem-vindo de volta</h1>
             <p className="text-sm text-muted-foreground mt-1">Entre com suas credenciais para continuar</p>
           </div>
