@@ -10,7 +10,7 @@ export const EXPECTED_PUBLISHABLE_KEY =
 // when they come from the same deployment.
 export const BUILD_STAMP =
   (typeof process !== "undefined" && process.env?.BUILD_STAMP) ||
-  "2026-04-23T00:00:00Z";
+  "2026-04-23T19:30:00Z-diag2";
 
 export function extractProjectRef(url: string | undefined | null): string {
   if (!url) return "?";
