@@ -144,9 +144,14 @@ export function DeployDiagnostic() {
               O servidor está em build diferente do navegador. Provável deploy desatualizado neste domínio (<code>{browserHost}</code>).
             </p>
           )}
-          {info && info.host !== browserHost && (
-            <p className="mt-2 text-[11px] text-muted-foreground">
+          {info && info.host !== browserHost && !isPreviewProxy && (
+            <p className="mt-2 text-[11px] text-warning-foreground">
               Host do servidor difere do navegador — possível proxy/CDN reescrevendo o cabeçalho Host.
+            </p>
+          )}
+          {info && isPreviewProxy && (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              Ambiente de preview Lovable detectado (iframe). Host divergente é esperado.
             </p>
           )}
         </div>
