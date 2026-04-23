@@ -44,6 +44,9 @@ type SortKey = "prioridade" | "extensaoM" | "ur" | "dn";
 
 function ObrasPage() {
   const qc = useQueryClient();
+  const { profile, role } = useAuth();
+  const isAdmin = role === "admin";
+  const canEdit = (obra: Obra) => isAdmin || profile?.ur === obra.ur;
   const { data: obras = [], isLoading } = useQuery({ queryKey: ["obras"], queryFn: fetchObras });
 
   const [query, setQuery] = useState("");
@@ -70,6 +73,14 @@ function ObrasPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["obras"] }); toast.success("Obra marcada como executada."); },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const tryEdit = (obra: Obra, action: () => void) => {
+    if (!canEdit(obra)) {
+      toast.error(permissionDeniedMessage(obra.ur));
+      return;
+    }
+    action();
+  };
 
   const filtered = useMemo(() => {
     let r: Obra[] = obras.filter(o => {
