@@ -220,10 +220,10 @@ function ObrasPage() {
                     <td className="px-3 py-2.5 text-right whitespace-nowrap">
                       {o.status !== "concluida" && (
                         <button
-                          onClick={() => execMut.mutate(o.id)}
-                          disabled={execMut.isPending}
-                          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-success-soft text-muted-foreground hover:text-success disabled:opacity-50"
-                          title="Marcar serviço como executado (define término = hoje)"
+                          onClick={() => tryEdit(o, () => execMut.mutate(o.id))}
+                          disabled={execMut.isPending || !canEdit(o)}
+                          className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-success-soft text-muted-foreground hover:text-success disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                          title={canEdit(o) ? "Marcar serviço como executado (define término = hoje)" : permissionDeniedMessage(o.ur)}
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
                         </button>
@@ -231,10 +231,20 @@ function ObrasPage() {
                       <button onClick={() => setHistorico(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-accent" title="Ver histórico">
                         <History className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => setEditing(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar">
+                      <button
+                        onClick={() => tryEdit(o, () => setEditing(o))}
+                        disabled={!canEdit(o)}
+                        className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-muted text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                        title={canEdit(o) ? "Editar" : permissionDeniedMessage(o.ur)}
+                      >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => setDeleting(o)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-destructive-soft text-muted-foreground hover:text-destructive" title="Excluir">
+                      <button
+                        onClick={() => tryEdit(o, () => setDeleting(o))}
+                        disabled={!canEdit(o)}
+                        className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-destructive-soft text-muted-foreground hover:text-destructive disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-muted-foreground"
+                        title={canEdit(o) ? "Excluir" : permissionDeniedMessage(o.ur)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </td>
