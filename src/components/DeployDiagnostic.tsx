@@ -12,8 +12,11 @@ interface RuntimeInfo {
   serverProjectRef: string;
   expectedProjectRef: string;
   projectMismatch: boolean;
+  hasSupabaseUrl?: boolean;
   hasServiceKey: boolean;
   hasPublishableKey: boolean;
+  envComplete?: boolean;
+  missingEnv?: string[];
   timestamp: string;
 }
 
@@ -56,9 +59,11 @@ export function DeployDiagnostic() {
     /^localhost(:\d+)?$/.test(info.host) &&
     /\.(lovableproject\.com|lovable\.app)$/.test(browserHost);
   const hostMatch = info && (info.host === browserHost || isPreviewProxy);
-  const allOk = !error && info && stampMatch && projectOk && hostMatch && info.hasServiceKey;
+  const envComplete = info ? (info.envComplete ?? (info.hasServiceKey && info.hasPublishableKey && (info.hasSupabaseUrl ?? true))) : false;
+  const envMissing = info && !envComplete;
+  const allOk = !error && info && stampMatch && projectOk && hostMatch && envComplete;
 
-  const badgeColor = error
+  const badgeColor = error || envMissing
     ? "bg-destructive/15 text-destructive border-destructive/30"
     : allOk
       ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
@@ -128,11 +133,27 @@ export function DeployDiagnostic() {
             />
             <Row label="projeto esperado" value={EXPECTED_PROJECT_REF} />
             <Row
+              label="supabase url"
+              value={info?.hasSupabaseUrl === false ? "NÃO" : info ? "sim" : "?"}
+              warn={!!info && info.hasSupabaseUrl === false}
+            />
+            <Row
+              label="publishable key"
+              value={info?.hasPublishableKey ? "sim" : "NÃO"}
+              warn={!!info && !info.hasPublishableKey}
+            />
+            <Row
               label="service key"
               value={info?.hasServiceKey ? "sim" : "NÃO"}
               warn={!!info && !info.hasServiceKey}
             />
           </ul>
+
+          {info && envMissing && (
+            <p className="mt-2 text-[11px] text-destructive">
+              Variáveis Supabase ausentes no Worker: <code>{(info.missingEnv ?? []).join(", ") || "(verificar)"}</code>. A tela de Usuários não funciona até cadastrá-las como Secret no Cloudflare e refazer o deploy.
+            </p>
+          )}
 
           {info && info.projectMismatch && (
             <p className="mt-2 text-[11px] text-warning-foreground">
