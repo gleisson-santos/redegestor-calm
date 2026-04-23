@@ -1,51 +1,105 @@
 
-## Mensagem de permissão ao tentar editar obra de outra UR
+## Diagnóstico
 
-Hoje, quando um usuário lotado em uma UR tenta editar uma obra de outra UR, o RLS do Supabase silenciosamente bloqueia o `UPDATE` (não retorna erro, apenas 0 linhas afetadas), e a UI mostra o toast genérico **"Obra atualizada."** — passando a falsa impressão de que salvou.
+O erro continua porque a falha acontece antes do build command rodar. Pelas capturas, o Cloudflare ainda entra na etapa:
 
-Vou trocar isso por uma checagem de permissão **antes** da chamada ao Supabase, mostrando um toast de erro claro com a UR da obra.
+```text
+Installing project dependencies: bun install --frozen-lockfile
+```
 
-### Comportamento novo
+Isso acontece porque o repositório ainda contém artefatos do Bun:
+- `bun.lockb`
+- `bunfig.toml`
 
-- Se `profile.ur !== obra.ur` e o usuário **não** for admin → toast vermelho:
-  > **Você não tem permissão para editar dados da UR {UR_DA_OBRA}**
-- Se for admin ou da mesma UR → fluxo atual (salva + toast "Obra atualizada").
-- Mesma regra aplicada a:
-  - Edição inline de **Extensão** (`InlineExtensao`)
-  - Edição inline de **Observações** (`ObsCell`)
-  - Edição via diálogo (`ObraDialogContent` — quando `obra` existe = modo edição)
-  - **Excluir** obra
-  - Botão **"marcar serviço executado"** (se aparecer na listagem)
+Mesmo com `Comando da build: npm run build`, o Cloudflare detecta `bun.lockb` e escolhe Bun na fase de instalação. Como esse lockfile está incompatível com a versão do Bun do runner, a instalação aborta.
 
-### Onde aplicar
+Também confirmei no código:
+- `package.json` usa scripts normais de npm
+- `package-lock.json` existe e já pode ser a fonte oficial
+- `wrangler.jsonc` ainda está com `"name": "tanstack-start-app"` enquanto o serviço no Cloudflare é `redegestor-calm`
 
-Arquivo principal: `src/routes/obras.tsx`
+## O que vou ajustar no repositório
 
-1. Importar `useAuth` no topo do arquivo.
-2. Criar um helper local dentro de `ObrasPage`:
-   ```ts
-   const { profile, role } = useAuth();
-   const isAdmin = role === "admin";
-   const canEdit = (obra: Obra) => isAdmin || profile?.ur === obra.ur;
+### 1) Padronizar o projeto para npm
+Arquivos:
+- remover `bun.lockb`
+- remover `bunfig.toml`
+- manter `package-lock.json` como lockfile oficial
+- atualizar `package.json` para deixar explícito o gerenciador:
+  ```json
+  "packageManager": "npm@10.9.2"
+  ```
+
+Objetivo:
+- impedir que o Cloudflare tente instalar dependências com Bun
+
+### 2) Sincronizar a configuração do worker
+Arquivo:
+- `wrangler.jsonc`
+
+Trocar:
+```json
+"name": "tanstack-start-app"
+```
+
+Para:
+```json
+"name": "redegestor-calm"
+```
+
+Objetivo:
+- eliminar o aviso de configuração inconsistente e alinhar o deploy com o serviço real no Cloudflare
+
+### 3) Revisão rápida de sinais de Bun
+Vou revisar referências restantes a Bun para não sobrar nenhum gatilho de autodetecção no projeto.
+
+## O que você fará no Cloudflare depois
+
+Depois que eu aplicar as mudanças no repo:
+
+1. Confirmar que o build command continua:
+   ```text
+   npm run build
    ```
-3. Passar `canEdit` (ou o resultado booleano) para `InlineExtensao`, `ObsCell` e `ObraDialogContent` via props.
-4. Em cada handler de mutação, antes de chamar `patchObra` / `upsertObra` / `deleteObra` / `marcarServicoExecutado`:
-   ```ts
-   if (!canEdit(obra)) {
-     toast.error(`Você não tem permissão para editar dados da UR ${obra.ur}`);
-     return;
-   }
+2. Manter o deploy command:
+   ```text
+   npx wrangler deploy
    ```
-5. Bônus de UX (opcional, sem mudar layout): aplicar `disabled` + `title` nos botões de editar/excluir quando `!canEdit(obra)`, para que o usuário entenda visualmente.
+3. Limpar o cache da build
+4. Rodar novo deploy
 
-### Detalhes técnicos
+## Variáveis que precisam continuar cadastradas
 
-- `useAuth()` já expõe `profile.ur` e `role` (`"admin" | "user"`) — nenhuma nova query necessária.
-- A checagem é client-side **defensiva** (UX); a segurança real continua no RLS do Postgres.
-- Nenhuma migração de banco, nenhuma mudança em outros arquivos.
-- Nada muda para admin nem para usuários editando obras da própria UR.
+No Cloudflare devem existir:
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_PROJECT_ID`
+- `SERVICE_ROLE_KEY`
 
-### Fora de escopo (posso fazer depois se quiser)
+Pelas capturas, isso parece estar quase certo; o bloqueio atual ainda é o Bun, não Supabase.
 
-- Aplicar a mesma checagem no Diário de Obra e em Lançamentos de Encargos.
-- Esconder completamente os botões em vez de só desabilitar.
+## Resultado esperado
+
+O fluxo deve passar a ser:
+
+```text
+Install: npm install / npm ci usando package-lock.json
+Build: npm run build
+Deploy: npx wrangler deploy
+```
+
+Em vez de:
+
+```text
+bun install --frozen-lockfile
+```
+
+## Arquivos que serão alterados
+- `package.json`
+- `wrangler.jsonc`
+
+## Arquivos que serão removidos
+- `bun.lockb`
+- `bunfig.toml`
