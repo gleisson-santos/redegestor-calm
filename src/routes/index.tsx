@@ -142,7 +142,7 @@ function Dashboard() {
         <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6 pb-5 border-b border-border">
           <div>
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mb-1">Painel gerencial</div>
-            <h1 className="text-2xl font-semibold tracking-tight"><span className="text-[oklch(0.55_0.18_250)]">Consolidação</span><span className="text-foreground"> de Frentes de Serviço</span></h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground">Consolidação de Frentes de Serviço</h1>
             <p className="text-sm text-muted-foreground mt-1">Controle operacional de obras, materiais técnicos e alvarás por Unidade Regional.</p>
           </div>
           <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
