@@ -17,3 +17,35 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: isBrowser,
   }
 });
+
+// Inject Supabase access token into TanStack Start server function calls.
+// Server middleware (requireSupabaseAuth) reads this Authorization header.
+if (isBrowser) {
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = async (input, init) => {
+    try {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input instanceof Request
+              ? input.url
+              : "";
+      if (url.includes("/_serverFn/")) {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token;
+        if (token) {
+          const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+          if (!headers.has("authorization")) {
+            headers.set("Authorization", `Bearer ${token}`);
+          }
+          return originalFetch(input, { ...init, headers });
+        }
+      }
+    } catch {
+      // fall through to original fetch on any error
+    }
+    return originalFetch(input, init);
+  };
+}
