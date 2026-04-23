@@ -92,8 +92,11 @@ function UsuariosPage() {
             <p className="font-semibold text-foreground">Diagnóstico do ambiente do servidor</p>
             {diag.hint && <p className="mt-1 text-foreground/90">{diag.hint}</p>}
             <ul className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono text-muted-foreground">
+              <li>host servidor: <span className="text-foreground">{diag.host}</span></li>
+              <li>host navegador: <span className="text-foreground">{typeof window !== "undefined" ? window.location.host : "?"}</span></li>
               <li>projeto detectado: <span className="text-foreground">{diag.projectRef}</span></li>
               <li>projeto esperado: <span className="text-foreground">{diag.expectedProjectRef}</span></li>
+              <li>build stamp: <span className="text-foreground">{diag.buildStamp}</span></li>
               <li>auth.users: <span className="text-foreground">{diag.authCount}</span></li>
               <li>profiles: <span className="text-foreground">{diag.profilesCount}</span></li>
               <li>user_roles: <span className="text-foreground">{diag.rolesCount}</span></li>
@@ -105,6 +108,11 @@ function UsuariosPage() {
                 <code className="font-mono">SUPABASE_PUBLISHABLE_KEY</code> e{" "}
                 <code className="font-mono">SERVICE_ROLE_KEY</code> para o projeto{" "}
                 <code className="font-mono">{diag.expectedProjectRef}</code> e refaça o deploy.
+              </p>
+            )}
+            {!diag.projectMismatch && diag.authCount === 0 && typeof window !== "undefined" && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Se este domínio (<code className="font-mono">{window.location.host}</code>) deveria mostrar usuários, ele provavelmente está servindo um deploy antigo ou outra publicação. Compare o <code className="font-mono">build stamp</code> acima com o de <code className="font-mono">redegestor.lovable.app</code>.
               </p>
             )}
           </div>
@@ -197,11 +205,25 @@ function CreateUserDialog({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({ email: "", password: "", nome: "", ur: "UMB", role: "user" as "admin" | "user" });
   const mut = useMutation({
-    mutationFn: () => createUser({ data: form }),
-    onSuccess: () => {
-      toast.success("Usuário criado");
+    mutationFn: async () => {
+      const created = await createUser({ data: form });
+      // Verifica se o id apareceu na lista do mesmo deploy
+      const refreshed = await listUsers();
+      const found = refreshed.users.some(u => u.id === created.id);
+      return { created, found, diagnostics: refreshed.diagnostics };
+    },
+    onSuccess: ({ found, diagnostics }) => {
+      qc.setQueryData(["admin-users"], (old: unknown) => old);
       qc.invalidateQueries({ queryKey: ["admin-users"] });
-      onClose();
+      if (found) {
+        toast.success("Usuário criado");
+        onClose();
+      } else {
+        toast.error(
+          `Usuário criado no Auth, mas não apareceu na lista deste deploy (host=${diagnostics?.host ?? "?"}, projeto=${diagnostics?.projectRef ?? "?"}). Verifique se o domínio aponta para o build correto.`,
+          { duration: 10000 }
+        );
+      }
     },
     onError: (e: Error) => toast.error(e.message),
   });

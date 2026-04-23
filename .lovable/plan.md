@@ -1,74 +1,62 @@
 
-## Corrigir o “vazio silencioso” na tela de Usuários
+Objetivo: eliminar o “sucesso falso” em Usuários e confirmar se `gestorr.controllserv.com.br` está mesmo servindo este projeto.
 
-### O que o comportamento atual indica
-O fato de a tela mostrar apenas **“Nenhum usuário ainda.”** sem banner de erro é um sinal importante:
+1. Confirmar e expor o problema de deploy/domínio
+- Adicionar à tela `/usuarios` um bloco discreto de diagnóstico visível só para admin com:
+  - host atual da requisição
+  - ref do projeto Supabase visto no servidor
+  - contagens de `auth.users`, `profiles`, `user_roles`
+  - identificador do build atual
+- Exibir mensagem específica quando o host em uso não bater com o deploy esperado ou quando a resposta do servidor indicar ambiente diferente/stale.
 
-- a query `listUsers()` está **respondendo com sucesso**
-- mas ela está retornando **lista vazia**
-- isso é mais compatível com **runtime do deploy apontando para um ambiente/projeto válido porém vazio**, do que com “chave ausente” ou “token inválido”
+2. Tornar o “criado com sucesso” realmente confiável
+- Ajustar `createUser` para, após criar no Auth/Profile/Role, validar o resultado final antes de retornar sucesso.
+- Depois da criação, a UI deve recarregar a lista e confirmar que o novo `id` apareceu.
+- Se o usuário não aparecer após a confirmação, trocar o toast de sucesso por erro orientado, informando que o frontend e o backend do domínio atual não estão sincronizados.
 
-Se fosse falta de `SERVICE_ROLE_KEY`, token inválido, ou erro de autenticação, a UI atual tenderia a mostrar **erro**, não tabela vazia.
+3. Centralizar a referência correta do projeto Supabase
+- Remover dependências espalhadas de ref esperada/hardcode duplicado.
+- Criar uma única fonte de verdade para:
+  - `SUPABASE_URL`
+  - ref esperada do projeto
+  - publishable key pública
+- Fazer cliente e servidor usarem a mesma referência pública para evitar divergência entre browser e server functions.
 
-### O que será ajustado
+4. Fortalecer o diagnóstico do servidor
+- Ampliar `listUsers` para retornar também:
+  - host recebido pela requisição
+  - build/version stamp
+  - indício de deploy desatualizado
+- Refinar logs para diferenciar claramente:
+  - deploy correto sem usuários
+  - deploy apontando para projeto Supabase errado
+  - domínio externo servindo build antigo
+  - criação no Auth sem refletir na interface atual
 
-1. **Adicionar diagnóstico explícito no retorno de `listUsers`**
-   - Incluir no retorno metadados seguros para debug:
-     - `projectRef` do runtime
-     - contagem de `auth.users`
-     - contagem de `profiles`
-     - contagem de `user_roles`
-     - quantidade final exibida
-   - Detectar o caso “sucesso com zero usuários” como **estado suspeito**, não como vazio normal.
+5. Ajustar a UX da página de Usuários
+- Substituir o “Nenhum usuário ainda.” por estados mais precisos:
+  - “Este domínio parece estar em um deploy antigo”
+  - “Servidor conectado ao projeto Supabase X, esperado Y”
+  - “Usuário criado no Auth, mas este deploy não recarregou a lista correta”
+- Manter a tabela vazia apenas para o caso realmente normal.
 
-2. **Melhorar a lógica de detecção no servidor**
-   - Em `src/server/users.ts`, tratar como diagnóstico especial quando:
-     - `auth.users = 0`
-     - `profiles = 0`
-     - `user_roles = 0`
-     - ou quando as contagens forem incoerentes
-   - Retornar uma mensagem clara do tipo:
-     - “O deploy está conectado a um projeto Supabase sem usuários”
-     - ou “As credenciais do runtime não parecem ser do mesmo projeto do app”
+6. Verificação final
+- Testar o comportamento em:
+  - `redegestor.lovable.app`
+  - `gestorr.controllserv.com.br`
+- Confirmar se ambos mostram o mesmo build stamp e o mesmo diagnóstico.
+- Se o `.com.br` continuar divergente, o problema deixa de ser código e passa a ser apontamento/publicação do domínio.
 
-3. **Mostrar esse diagnóstico na página `/usuarios`**
-   - Em `src/routes/usuarios.tsx`, trocar o estado silencioso de “Nenhum usuário ainda” por um bloco mais útil quando o vazio for suspeito.
-   - Exibir algo como:
-     - projeto detectado no servidor
-     - quantidade encontrada em `auth.users`, `profiles` e `user_roles`
-     - instrução objetiva para revisar as variáveis do Cloudflare
-
-4. **Reduzir chance de divergência entre cliente e servidor**
-   - Centralizar a configuração pública do Supabase para que servidor e navegador usem a mesma referência pública do projeto sempre que possível.
-   - Manter apenas a chave de serviço dependente do ambiente.
-   - Isso evita cenário em que o navegador aponta para um projeto e o backend do deploy para outro.
-
-5. **Adicionar logs mais objetivos para o deploy**
-   - Refinar os logs em `src/server/users.ts` para registrar:
-     - ref do projeto em uso
-     - contagens retornadas
-     - qual caminho de diagnóstico foi acionado
-   - Assim, no próximo teste, o problema aparece claramente no log do worker.
-
-### Arquivos previstos
+Arquivos previstos
 - `src/server/users.ts`
 - `src/routes/usuarios.tsx`
-- possivelmente `src/integrations/supabase/client.server.ts`
-- possivelmente `src/integrations/supabase/auth-middleware.ts`
+- `src/integrations/supabase/client.server.ts`
 - possivelmente um helper compartilhado de configuração Supabase
 
-### Resultado esperado
-Depois da correção, a tela de usuários vai parar de falhar de forma “silenciosa”:
-- se houver usuários, eles aparecem
-- se o deploy estiver apontando para credenciais/projeto incorretos, a própria tela vai dizer isso de forma objetiva
-- se houver inconsistência entre `auth.users`, `profiles` e `user_roles`, isso também ficará visível
+Observação importante
+- Pelos sinais atuais, o comportamento visto no print não bate com a lógica mais recente do `listUsers`, e este projeto não está com custom domain configurado na publicação atual. Isso indica forte chance de `gestorr.controllserv.com.br` estar servindo outro deploy, um build antigo, ou uma publicação paralela. O ajuste acima vai tornar isso visível na própria tela, sem depender de suposição.
 
-### Detalhe técnico
-Hoje o vazio da tabela é enganoso porque o frontend só diferencia:
-- **erro**
-- **lista vazia**
-
-Mas o seu caso parece ser um terceiro cenário:
-- **resposta bem-sucedida, porém vinda do ambiente errado ou inconsistente**
-
-A correção vai separar esse caso para não parecer que “não há usuários”, quando na prática o deploy é que não está enxergando o conjunto correto.
+Detalhes técnicos
+- Hoje, com o código atual de `listUsers`, se houver usuários em `auth.users`, a tabela não deveria continuar vazia silenciosamente.
+- Como o print ainda mostra “Nenhum usuário ainda.” após “Usuário criado”, a hipótese principal não é mais trigger/RLS, e sim desalinhamento entre domínio, build ativo e server runtime.
+- A implementação vai transformar esse cenário em diagnóstico explícito e bloquear o falso positivo de criação.
