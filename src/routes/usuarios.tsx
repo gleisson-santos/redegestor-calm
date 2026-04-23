@@ -87,7 +87,26 @@ function UsuariosPage() {
           </div>
         )}
 
-        {showDiagnostic && diag && (
+        {diag && diag.envComplete === false && (
+          <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
+            <p className="font-semibold text-destructive">Variáveis Supabase ausentes neste deploy</p>
+            <p className="mt-1 text-foreground/90">
+              Este deploy (<code className="font-mono">{diag.host}</code>) não tem as credenciais Supabase configuradas no runtime do Worker. Por isso a tela de Usuários não consegue listar nada — o resto do app funciona porque usa a chave pública do bundle do navegador.
+            </p>
+            <p className="mt-2 text-xs text-foreground/80">
+              Faltando: <code className="font-mono">{diag.missingEnv.join(", ")}</code>
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Cadastre como <strong>Secret</strong> em Cloudflare → Workers & Pages → seu Worker → Settings → Variables and Secrets:
+              <br />• <code className="font-mono">SUPABASE_URL</code>
+              <br />• <code className="font-mono">SUPABASE_PUBLISHABLE_KEY</code>
+              <br />• <code className="font-mono">SUPABASE_SERVICE_ROLE_KEY</code> (e/ou <code className="font-mono">SERVICE_ROLE_KEY</code>)
+              <br />Depois, refaça o deploy do Worker.
+            </p>
+          </div>
+        )}
+
+        {showDiagnostic && diag && diag.envComplete !== false && (
           <div className="mb-4 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm">
             <p className="font-semibold text-foreground">Diagnóstico do ambiente do servidor</p>
             {diag.hint && <p className="mt-1 text-foreground/90">{diag.hint}</p>}
