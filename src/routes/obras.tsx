@@ -456,7 +456,7 @@ function PeriodoCell({ obra }: { obra: Obra }) {
 }
 
 /* ---------- Observação rápida (popover) ---------- */
-function ObsCell({ obra }: { obra: Obra }) {
+function ObsCell({ obra, canEdit }: { obra: Obra; canEdit: boolean }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(obra.observacoes ?? "");
@@ -467,21 +467,35 @@ function ObsCell({ obra }: { obra: Obra }) {
     onError: (e: Error) => toast.error(e.message),
   });
   const has = !!obra.observacoes && obra.observacoes.trim().length > 0;
+  const handleOpenChange = (next: boolean) => {
+    if (next && !canEdit && !has) {
+      toast.error(permissionDeniedMessage(obra.ur));
+      return;
+    }
+    setOpen(next);
+  };
+  const handleSave = () => {
+    if (!canEdit) {
+      toast.error(permissionDeniedMessage(obra.ur));
+      return;
+    }
+    mut.mutate();
+  };
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <button className={cn("inline-flex items-center justify-center h-7 w-7 rounded transition-colors",
           has ? "bg-info-soft text-info hover:bg-info/20" : "text-muted-foreground hover:bg-muted")}
-          title={has ? obra.observacoes! : "Adicionar observação"}>
+          title={has ? obra.observacoes! : (canEdit ? "Adicionar observação" : permissionDeniedMessage(obra.ur))}>
           <MessageSquare className="h-3.5 w-3.5" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-3" align="end">
         <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono mb-2">Observações do gestor</div>
-        <Textarea rows={4} placeholder="Anotações legais, contatos, pendências…" value={text} onChange={e => setText(e.target.value)} />
+        <Textarea rows={4} placeholder="Anotações legais, contatos, pendências…" value={text} onChange={e => setText(e.target.value)} disabled={!canEdit} />
         <div className="flex justify-end gap-2 mt-2">
-          <Button size="sm" variant="ghost" onClick={() => { setText(obra.observacoes ?? ""); setOpen(false); }}>Cancelar</Button>
-          <Button size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>{mut.isPending ? "Salvando…" : "Salvar"}</Button>
+          <Button size="sm" variant="ghost" onClick={() => { setText(obra.observacoes ?? ""); setOpen(false); }}>Fechar</Button>
+          <Button size="sm" onClick={handleSave} disabled={mut.isPending || !canEdit}>{mut.isPending ? "Salvando…" : "Salvar"}</Button>
         </div>
       </PopoverContent>
     </Popover>
