@@ -110,7 +110,7 @@ export function DeployDiagnostic() {
             <Row
               label="host servidor"
               value={info?.host ?? "?"}
-              warn={!!info && info.host !== browserHost}
+              warn={!!info && info.host !== browserHost && !isPreviewProxy}
             />
             <Row
               label="build navegador"
