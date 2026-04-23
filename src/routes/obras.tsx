@@ -24,6 +24,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
+
+function permissionDeniedMessage(ur: string): string {
+  return `Você não tem permissão para editar dados da UR ${ur}`;
+}
 
 export const Route = createFileRoute("/obras")({
   head: () => ({
