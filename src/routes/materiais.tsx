@@ -136,27 +136,45 @@ function MateriaisPage() {
             <table className="w-full text-[13px]">
               <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="text-left px-4 py-2.5 font-medium">Código</th>
-                  <th className="text-left px-2 py-2.5 font-medium">Descrição</th>
-                  <th className="text-left px-2 py-2.5 font-medium">UR</th>
-                  <th className="text-left px-2 py-2.5 font-medium">Tipo</th>
-                  <th className="text-right px-2 py-2.5 font-medium">DN</th>
-                  <th className="text-right px-2 py-2.5 font-medium">Necessário</th>
-                  <th className="text-right px-2 py-2.5 font-medium">Estoque</th>
-                  <th className="text-right px-2 py-2.5 font-medium">Saldo</th>
-                  <th className="text-left px-2 py-2.5 font-medium">Status</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Ações</th>
+                  <th rowSpan={2} className="text-left px-4 py-2.5 font-medium align-bottom">Código</th>
+                  <th rowSpan={2} className="text-left px-2 py-2.5 font-medium align-bottom">Descrição</th>
+                  <th rowSpan={2} className="text-left px-2 py-2.5 font-medium align-bottom">UR</th>
+                  <th rowSpan={2} className="text-left px-2 py-2.5 font-medium align-bottom">Tipo</th>
+                  <th rowSpan={2} className="text-right px-2 py-2.5 font-medium align-bottom">DN</th>
+                  <th colSpan={10} className="text-center px-2 py-1.5 font-medium border-l border-border">Materiais para execução</th>
+                  <th rowSpan={2} className="text-right px-2 py-2.5 font-medium align-bottom border-l border-border">Total</th>
+                  <th rowSpan={2} className="text-right px-2 py-2.5 font-medium align-bottom">Estoque</th>
+                  <th rowSpan={2} className="text-right px-2 py-2.5 font-medium align-bottom">Saldo</th>
+                  <th rowSpan={2} className="text-left px-2 py-2.5 font-medium align-bottom">Status</th>
+                  <th rowSpan={2} className="text-right px-4 py-2.5 font-medium align-bottom">Ações</th>
+                </tr>
+                <tr>
+                  {pCols.map((p, i) => (
+                    <th key={p} className={cn("text-center px-1 py-1.5 font-medium font-mono min-w-[44px]", i === 0 && "border-l border-border")}>
+                      P{i + 1}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {pagedEnriched.map(m => (
+                {pagedEnriched.map(m => {
+                  const mm = m as unknown as Record<string, number | null>;
+                  return (
                   <tr key={m.id} className="hover:bg-muted/30">
                     <td className="px-4 py-2.5 font-mono text-[12px] font-semibold">{m.codigo}</td>
                     <td className="px-2 py-2.5 truncate max-w-[280px]">{m.descricao}</td>
                     <td className="px-2 py-2.5 font-mono text-[12px]">{m.ur}</td>
                     <td className="px-2 py-2.5"><MaterialBadge tipo={m.tipo} /></td>
                     <td className="px-2 py-2.5 text-right tabular font-mono">{m.dn || "—"}</td>
-                    <td className="px-2 py-2.5 text-right tabular font-mono">{Math.round(Number(m.quantidade_necessaria)).toLocaleString("pt-BR")}</td>
+                    {pCols.map((p, i) => {
+                      const v = Number(mm[p] ?? 0);
+                      return (
+                        <td key={p} className={cn("px-1 py-2.5 text-center tabular font-mono text-[12px]", i === 0 && "border-l border-border", v === 0 && "text-muted-foreground/40")}>
+                          {v === 0 ? "—" : Math.round(v).toLocaleString("pt-BR")}
+                        </td>
+                      );
+                    })}
+                    <td className="px-2 py-2.5 text-right tabular font-mono font-semibold border-l border-border">{Math.round(Number(m.quantidade_necessaria)).toLocaleString("pt-BR")}</td>
                     <td className="px-2 py-2.5 text-right tabular font-mono">{Math.round(Number(m.quantidade_estoque)).toLocaleString("pt-BR")}</td>
                     <td className={cn("px-2 py-2.5 text-right tabular font-mono font-semibold", m.saldo < 0 ? "text-destructive" : "text-success")}>
                       {m.saldo > 0 ? "+" : ""}{Math.round(m.saldo).toLocaleString("pt-BR")}
@@ -179,7 +197,8 @@ function MateriaisPage() {
                       <button onClick={() => setDeleting(m)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-destructive-soft text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             {filtered.length === 0 && !isLoading && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhum material encontrado.</div>}
