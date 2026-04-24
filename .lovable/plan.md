@@ -1,73 +1,72 @@
 
 
-## Adicionar colunas P1–P10 (planos de trabalho) à Gestão de Materiais
+## Importar valores P1–P10 do Google Sheets para o sistema
 
-Reproduzir a estrutura da planilha original do Google Sheets, onde cada material tem a necessidade distribuída em até 10 planos de trabalho (P1 a P10, por ordem de prioridade), e o total é calculado a partir da soma desses valores.
+Ler diretamente da planilha **"Consolidação de Frentes de Serviço — Gestão de Obras"**, aba **"Gestão de Materiais"**, e atualizar os campos P1–P10 dos materiais já cadastrados no banco, casando pelo `codigo` + `ur`.
 
-### 1. Banco de dados — migration
+### 1. Conectar o Google Sheets ao projeto
 
-Adicionar 10 colunas numéricas à tabela `materiais` no Supabase:
+Verificar se já existe uma conexão Google Sheets linkada (o conector aparece em `<useful-context>`, então provavelmente sim). Se não, abrir o seletor para o usuário escolher/criar a conexão.
 
-```sql
-ALTER TABLE public.materiais
-  ADD COLUMN p1  numeric DEFAULT 0,
-  ADD COLUMN p2  numeric DEFAULT 0,
-  ADD COLUMN p3  numeric DEFAULT 0,
-  ADD COLUMN p4  numeric DEFAULT 0,
-  ADD COLUMN p5  numeric DEFAULT 0,
-  ADD COLUMN p6  numeric DEFAULT 0,
-  ADD COLUMN p7  numeric DEFAULT 0,
-  ADD COLUMN p8  numeric DEFAULT 0,
-  ADD COLUMN p9  numeric DEFAULT 0,
-  ADD COLUMN p10 numeric DEFAULT 0;
-```
+### 2. Ler a planilha via gateway
 
-- Mantém `quantidade_necessaria` existente (agora vira o **total acumulado**, calculado).
-- Backfill: para os materiais que já têm `quantidade_necessaria > 0` mas todas as P# zeradas, copiamos o valor para `p1` (assim a tela já mostra os dados atuais sem perda).
+- Spreadsheet ID: `12bVQlU4NUQR9JncZG4vIn-_SuTncrS3yLsN9hHFgAks`
+- Aba: `Gestão de Materiais`
+- Range: `'Gestão de Materiais'!A2:P` (pula o cabeçalho da linha 1; a linha 2 é o sub-cabeçalho UR/DN/Tipo/1..10/Total Geral, que será descartada)
 
-### 2. Trigger de soma automática
+Mapeamento das colunas:
+| Coluna | Campo |
+|---|---|
+| A | `codigo` |
+| B | `descricao` (referência, não sobrescreve) |
+| C | `ur` |
+| D | `dn` (referência) |
+| E | `tipo` (referência) |
+| F | `p1` |
+| G | `p2` |
+| H | `p3` |
+| I | `p4` |
+| J | `p5` |
+| K | `p6` |
+| L | `p7` |
+| M | `p8` |
+| N | `p9` |
+| O | `p10` |
+| P | Total Geral (ignorado — o trigger recalcula) |
 
-Trigger `BEFORE INSERT OR UPDATE` que recalcula `quantidade_necessaria` como `COALESCE(p1,0) + COALESCE(p2,0) + ... + COALESCE(p10,0)`. Garante que o total geral nunca fica fora de sincronia, independente de a edição vir pela UI ou direto no banco.
+Linhas vazias / linhas-cabeçalho repetidas (sem código numérico em A) são puladas.
 
-### 3. Camada de dados (`src/data/api.ts`)
+### 3. Importar via script de uma única execução (`code--exec`)
 
-- Tipos `MaterialRow` / `MaterialInsert` passam a refletir os novos campos automaticamente após regenerar os types do Supabase.
-- Sem mudanças nas funções `fetchMateriais`, `upsertMaterial`, `deleteMaterial` (já fazem `select *` / spread).
+Como é uma operação pontual de carga inicial, faço via script no sandbox que:
+1. Chama o gateway do Google Sheets para baixar os dados.
+2. Para cada linha válida, monta um `UPSERT` por `(codigo, ur)`:
+   - Se o material existir → atualiza apenas `p1..p10` (preserva `quantidade_estoque`, `descricao`, etc).
+   - Se não existir → insere novo registro com os dados da planilha (`codigo`, `descricao`, `ur`, `dn`, `tipo`, `p1..p10`, `quantidade_estoque = 0`).
+3. O trigger `materiais_recalc_total` (já criado) recalcula `quantidade_necessaria` automaticamente.
 
-### 4. Tela `src/routes/materiais.tsx`
+Para suportar o upsert por `(codigo, ur)`, preciso adicionar uma **constraint UNIQUE (codigo, ur)** na tabela `materiais` (migration leve, antes da carga). Isso também previne duplicatas futuras e é coerente com a planilha (o mesmo código aparece uma vez por UR).
 
-**Tabela principal — após a coluna DN, adicionar 10 colunas compactas P1…P10:**
-- Largura mínima por coluna (~48px), texto centralizado, `tabular`/`font-mono`.
-- Células com valor `0` ou `null` exibidas como `—` em cinza claro para reduzir poluição visual.
-- A coluna existente **Necessário** continua, agora rotulada como **"Total"**, mostrando a soma (vinda do banco) destacada em negrito.
-- Adicionar `overflow-x-auto` (já existe) — em telas menores a tabela rola horizontalmente.
-- Cabeçalho duplo (rowspan) agrupando as P1–P10 sob o título **"Materiais para execução"**, igual à planilha original.
+### 4. Relatório de importação
 
-**KPI de necessidade total** continua usando o campo agregado.
+Ao final, mostro no chat:
+- Quantas linhas foram lidas da planilha
+- Quantos materiais foram **atualizados** (já existiam)
+- Quantos foram **inseridos** (novos)
+- Quantas linhas foram **puladas** (sem código, sem UR ou inválidas)
+- Lista dos códigos que tinham diferenças relevantes (opcional, primeiros 20)
 
-**Diálogo de criar/editar material:**
-- Substituir o campo único "Quantidade necessária" por uma grade compacta de 10 inputs numéricos (2 colunas × 5 linhas), rotulados **P1, P2, … P10**.
-- Abaixo dela, mostrar o **Total calculado** em tempo real (read-only): `Σ P1..P10`.
-- Manter "Quantidade em estoque" como está.
-- Ao salvar, enviar todos os `p1..p10` no upsert; o trigger no banco atualiza `quantidade_necessaria` automaticamente.
+### 5. O que NÃO muda
 
-### 5. Exportação CSV
+- UI da tela de Materiais (já está pronta para mostrar P1–P10)
+- Estoque atual de cada material (preservado)
+- Código de aplicação — só roda script + 1 migration de constraint
 
-Adicionar as 10 colunas P1…P10 entre `DN` e `Necessário` no CSV exportado, mantendo compatibilidade visual com a planilha original.
+### Pré-requisito de permissão
 
-### 6. Não muda
-
-- Filtros por UR, busca, paginação, badges de status (`Adquirir` / `OK` / `sem demanda`) — toda a lógica de saldo continua funcionando porque `quantidade_necessaria` permanece como o total.
-- Outros menus (Consolidado, Obras, etc.) — nenhum impacto.
+Para o script rodar via `code--exec` com `psql`, preciso que você aprove **"Add data"** (insert/update) nas configurações do Lovable Cloud quando a permissão for solicitada — é o que permite escrever os P1–P10 de volta no banco. Alternativa: gero uma migration SQL grande com todos os UPDATEs (funciona, mas fica um arquivo enorme no histórico).
 
 ### Resultado esperado
 
-A tela "Gestão de Materiais" passa a mostrar, da esquerda para a direita:
-**Código · Descrição · UR · Tipo · DN · P1 P2 P3 P4 P5 P6 P7 P8 P9 P10 · Total · Estoque · Saldo · Status · Ações**
-
-Idêntica ao layout da planilha do Google Sheets que você compartilhou, com os planos de trabalho (P1 = prioridade 1, P2 = prioridade 2, etc.) lançados individualmente e o total somado automaticamente.
-
-### Observação
-
-Os valores **atuais** das suas P1–P10 (que estão hoje só na planilha) precisarão ser **importados ou digitados** depois. A migração só cria a estrutura — o backfill inicial copia o total de hoje para a coluna `p1`, e você redistribui depois pela própria interface (ou eu monto um importador CSV num próximo passo, se quiser).
+Ao abrir a tela **Gestão de Materiais**, todas as linhas da UML, UMB e UMF aparecem com os valores P1–P10 idênticos à planilha do Google Sheets, e a coluna **Total** mostra a soma correta automaticamente. A partir daí, novos lançamentos podem ser feitos manualmente pela interface.
 
