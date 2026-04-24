@@ -63,9 +63,16 @@ function MateriaisPage() {
 
   useEffect(() => { setPage(1); }, [query, urFilter]);
 
+  const pCols = ["p1","p2","p3","p4","p5","p6","p7","p8","p9","p10"] as const;
+
   const exportCSV = () => {
-    const headers = ["Código", "Descrição", "UR", "DN", "Tipo", "Unidade", "Necessário", "Estoque", "Saldo"];
-    const rows = enriched.map(m => [m.codigo, m.descricao, m.ur, m.dn ?? "", m.tipo, m.unidade, m.quantidade_necessaria, m.quantidade_estoque, m.saldo]);
+    const headers = ["Código", "Descrição", "UR", "DN", "Tipo", "Unidade", "P1","P2","P3","P4","P5","P6","P7","P8","P9","P10", "Total", "Estoque", "Saldo"];
+    const rows = enriched.map(m => {
+      const mm = m as unknown as Record<string, number | string | null>;
+      return [m.codigo, m.descricao, m.ur, m.dn ?? "", m.tipo, m.unidade,
+        ...pCols.map(p => Number(mm[p] ?? 0)),
+        m.quantidade_necessaria, m.quantidade_estoque, m.saldo];
+    });
     const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
