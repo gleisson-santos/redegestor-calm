@@ -231,25 +231,32 @@ function MateriaisPage() {
 
 function MaterialDialogContent({ material, onClose }: { material: MaterialRow | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState<MaterialInsert>(() => ({
+  const pCols = ["p1","p2","p3","p4","p5","p6","p7","p8","p9","p10"] as const;
+  const mm = (material ?? {}) as unknown as Record<string, number | null | undefined>;
+  const [form, setForm] = useState<MaterialInsert & Record<string, unknown>>(() => ({
     codigo: material?.codigo ?? "",
     descricao: material?.descricao ?? "",
     ur: material?.ur ?? "UMF",
     dn: material?.dn ?? null,
     tipo: material?.tipo ?? "DEFOFO",
     unidade: material?.unidade ?? "m",
-    quantidade_necessaria: material?.quantidade_necessaria ?? 0,
     quantidade_estoque: material?.quantidade_estoque ?? 0,
+    p1: Number(mm.p1 ?? 0), p2: Number(mm.p2 ?? 0), p3: Number(mm.p3 ?? 0),
+    p4: Number(mm.p4 ?? 0), p5: Number(mm.p5 ?? 0), p6: Number(mm.p6 ?? 0),
+    p7: Number(mm.p7 ?? 0), p8: Number(mm.p8 ?? 0), p9: Number(mm.p9 ?? 0),
+    p10: Number(mm.p10 ?? 0),
   }));
 
+  const total = pCols.reduce((s, p) => s + Number((form as Record<string, unknown>)[p] ?? 0), 0);
+
   const mut = useMutation({
-    mutationFn: () => upsertMaterial({ ...form, id: material?.id }),
+    mutationFn: () => upsertMaterial({ ...(form as MaterialInsert), id: material?.id }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["materiais"] }); toast.success(material ? "Material atualizado." : "Material criado."); onClose(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <DialogContent className="max-w-2xl">
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{material ? "Editar material" : "Novo material"}</DialogTitle></DialogHeader>
       <form onSubmit={(e) => { e.preventDefault(); mut.mutate(); }} className="grid grid-cols-2 gap-3 py-2">
         <Field label="Código"><Input required value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} /></Field>
@@ -270,8 +277,32 @@ function MaterialDialogContent({ material, onClose }: { material: MaterialRow | 
           </select>
         </Field>
         <Field label="DN (mm)"><Input type="number" value={form.dn ?? ""} onChange={e => setForm(f => ({ ...f, dn: e.target.value ? Number(e.target.value) : null }))} /></Field>
-        <Field label="Quantidade necessária"><Input type="number" step="0.01" value={form.quantidade_necessaria ?? 0} onChange={e => setForm(f => ({ ...f, quantidade_necessaria: Number(e.target.value) }))} /></Field>
-        <Field label="Quantidade em estoque"><Input type="number" step="0.01" value={form.quantidade_estoque ?? 0} onChange={e => setForm(f => ({ ...f, quantidade_estoque: Number(e.target.value) }))} /></Field>
+        <Field label="Quantidade em estoque"><Input type="number" step="0.01" value={Number(form.quantidade_estoque ?? 0)} onChange={e => setForm(f => ({ ...f, quantidade_estoque: Number(e.target.value) }))} /></Field>
+
+        <div className="col-span-2 mt-2 border border-border rounded-md p-3 bg-muted/30">
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Materiais para execução — por plano de trabalho</Label>
+            <span className="text-[12px] font-mono">
+              Total: <span className="font-semibold tabular">{Math.round(total).toLocaleString("pt-BR")}</span>
+            </span>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {pCols.map((p, i) => (
+              <div key={p} className="flex flex-col gap-1">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono text-center">P{i + 1}</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="h-9 text-center font-mono text-[12px]"
+                  value={Number((form as Record<string, unknown>)[p] ?? 0)}
+                  onChange={e => setForm(f => ({ ...f, [p]: Number(e.target.value) }))}
+                />
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">A quantidade necessária total é calculada automaticamente como a soma de P1 a P10.</p>
+        </div>
+
         <DialogFooter className="col-span-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button type="submit" disabled={mut.isPending}>{mut.isPending ? "Salvando…" : material ? "Salvar" : "Criar"}</Button>
