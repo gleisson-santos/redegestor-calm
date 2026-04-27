@@ -63,9 +63,16 @@ function MateriaisPage() {
 
   useEffect(() => { setPage(1); }, [query, urFilter]);
 
+  const pCols = ["p1","p2","p3","p4","p5","p6","p7","p8","p9","p10"] as const;
+
   const exportCSV = () => {
-    const headers = ["Código", "Descrição", "UR", "DN", "Tipo", "Unidade", "Necessário", "Estoque", "Saldo"];
-    const rows = enriched.map(m => [m.codigo, m.descricao, m.ur, m.dn ?? "", m.tipo, m.unidade, m.quantidade_necessaria, m.quantidade_estoque, m.saldo]);
+    const headers = ["Código", "Descrição", "UR", "DN", "Tipo", "Unidade", "P1","P2","P3","P4","P5","P6","P7","P8","P9","P10", "Total", "Estoque", "Saldo"];
+    const rows = enriched.map(m => {
+      const mm = m as unknown as Record<string, number | string | null>;
+      return [m.codigo, m.descricao, m.ur, m.dn ?? "", m.tipo, m.unidade,
+        ...pCols.map(p => Number(mm[p] ?? 0)),
+        m.quantidade_necessaria, m.quantidade_estoque, m.saldo];
+    });
     const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -129,27 +136,45 @@ function MateriaisPage() {
             <table className="w-full text-[13px]">
               <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="text-left px-4 py-2.5 font-medium">Código</th>
-                  <th className="text-left px-2 py-2.5 font-medium">Descrição</th>
-                  <th className="text-left px-2 py-2.5 font-medium">UR</th>
-                  <th className="text-left px-2 py-2.5 font-medium">Tipo</th>
-                  <th className="text-right px-2 py-2.5 font-medium">DN</th>
-                  <th className="text-right px-2 py-2.5 font-medium">Necessário</th>
-                  <th className="text-right px-2 py-2.5 font-medium">Estoque</th>
-                  <th className="text-right px-2 py-2.5 font-medium">Saldo</th>
-                  <th className="text-left px-2 py-2.5 font-medium">Status</th>
-                  <th className="text-right px-4 py-2.5 font-medium">Ações</th>
+                  <th rowSpan={2} className="text-left px-4 py-2.5 font-medium align-bottom">Código</th>
+                  <th rowSpan={2} className="text-left px-2 py-2.5 font-medium align-bottom">Descrição</th>
+                  <th rowSpan={2} className="text-left px-2 py-2.5 font-medium align-bottom">UR</th>
+                  <th rowSpan={2} className="text-left px-2 py-2.5 font-medium align-bottom">Tipo</th>
+                  <th rowSpan={2} className="text-right px-2 py-2.5 font-medium align-bottom">DN</th>
+                  <th colSpan={10} className="text-center px-2 py-1.5 font-medium border-l border-border">Materiais para execução</th>
+                  <th rowSpan={2} className="text-right px-2 py-2.5 font-medium align-bottom border-l border-border">Total</th>
+                  <th rowSpan={2} className="text-right px-2 py-2.5 font-medium align-bottom">Estoque</th>
+                  <th rowSpan={2} className="text-right px-2 py-2.5 font-medium align-bottom">Saldo</th>
+                  <th rowSpan={2} className="text-left px-2 py-2.5 font-medium align-bottom">Status</th>
+                  <th rowSpan={2} className="text-right px-4 py-2.5 font-medium align-bottom">Ações</th>
+                </tr>
+                <tr>
+                  {pCols.map((p, i) => (
+                    <th key={p} className={cn("text-center px-1 py-1.5 font-medium font-mono min-w-[44px]", i === 0 && "border-l border-border")}>
+                      P{i + 1}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {pagedEnriched.map(m => (
+                {pagedEnriched.map(m => {
+                  const mm = m as unknown as Record<string, number | null>;
+                  return (
                   <tr key={m.id} className="hover:bg-muted/30">
                     <td className="px-4 py-2.5 font-mono text-[12px] font-semibold">{m.codigo}</td>
                     <td className="px-2 py-2.5 truncate max-w-[280px]">{m.descricao}</td>
                     <td className="px-2 py-2.5 font-mono text-[12px]">{m.ur}</td>
                     <td className="px-2 py-2.5"><MaterialBadge tipo={m.tipo} /></td>
                     <td className="px-2 py-2.5 text-right tabular font-mono">{m.dn || "—"}</td>
-                    <td className="px-2 py-2.5 text-right tabular font-mono">{Math.round(Number(m.quantidade_necessaria)).toLocaleString("pt-BR")}</td>
+                    {pCols.map((p, i) => {
+                      const v = Number(mm[p] ?? 0);
+                      return (
+                        <td key={p} className={cn("px-1 py-2.5 text-center tabular font-mono text-[12px]", i === 0 && "border-l border-border", v === 0 && "text-muted-foreground/40")}>
+                          {v === 0 ? "—" : Math.round(v).toLocaleString("pt-BR")}
+                        </td>
+                      );
+                    })}
+                    <td className="px-2 py-2.5 text-right tabular font-mono font-semibold border-l border-border">{Math.round(Number(m.quantidade_necessaria)).toLocaleString("pt-BR")}</td>
                     <td className="px-2 py-2.5 text-right tabular font-mono">{Math.round(Number(m.quantidade_estoque)).toLocaleString("pt-BR")}</td>
                     <td className={cn("px-2 py-2.5 text-right tabular font-mono font-semibold", m.saldo < 0 ? "text-destructive" : "text-success")}>
                       {m.saldo > 0 ? "+" : ""}{Math.round(m.saldo).toLocaleString("pt-BR")}
@@ -172,7 +197,8 @@ function MateriaisPage() {
                       <button onClick={() => setDeleting(m)} className="inline-flex items-center justify-center h-7 w-7 rounded hover:bg-destructive-soft text-muted-foreground hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             {filtered.length === 0 && !isLoading && <div className="px-5 py-12 text-center text-sm text-muted-foreground">Nenhum material encontrado.</div>}
@@ -205,25 +231,32 @@ function MateriaisPage() {
 
 function MaterialDialogContent({ material, onClose }: { material: MaterialRow | null; onClose: () => void }) {
   const qc = useQueryClient();
-  const [form, setForm] = useState<MaterialInsert>(() => ({
+  const pCols = ["p1","p2","p3","p4","p5","p6","p7","p8","p9","p10"] as const;
+  const mm = (material ?? {}) as unknown as Record<string, number | null | undefined>;
+  const [form, setForm] = useState<MaterialInsert & Record<string, unknown>>(() => ({
     codigo: material?.codigo ?? "",
     descricao: material?.descricao ?? "",
     ur: material?.ur ?? "UMF",
     dn: material?.dn ?? null,
     tipo: material?.tipo ?? "DEFOFO",
     unidade: material?.unidade ?? "m",
-    quantidade_necessaria: material?.quantidade_necessaria ?? 0,
     quantidade_estoque: material?.quantidade_estoque ?? 0,
+    p1: Number(mm.p1 ?? 0), p2: Number(mm.p2 ?? 0), p3: Number(mm.p3 ?? 0),
+    p4: Number(mm.p4 ?? 0), p5: Number(mm.p5 ?? 0), p6: Number(mm.p6 ?? 0),
+    p7: Number(mm.p7 ?? 0), p8: Number(mm.p8 ?? 0), p9: Number(mm.p9 ?? 0),
+    p10: Number(mm.p10 ?? 0),
   }));
 
+  const total = pCols.reduce((s, p) => s + Number((form as Record<string, unknown>)[p] ?? 0), 0);
+
   const mut = useMutation({
-    mutationFn: () => upsertMaterial({ ...form, id: material?.id }),
+    mutationFn: () => upsertMaterial({ ...(form as MaterialInsert), id: material?.id }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["materiais"] }); toast.success(material ? "Material atualizado." : "Material criado."); onClose(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <DialogContent className="max-w-2xl">
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>{material ? "Editar material" : "Novo material"}</DialogTitle></DialogHeader>
       <form onSubmit={(e) => { e.preventDefault(); mut.mutate(); }} className="grid grid-cols-2 gap-3 py-2">
         <Field label="Código"><Input required value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} /></Field>
@@ -244,8 +277,32 @@ function MaterialDialogContent({ material, onClose }: { material: MaterialRow | 
           </select>
         </Field>
         <Field label="DN (mm)"><Input type="number" value={form.dn ?? ""} onChange={e => setForm(f => ({ ...f, dn: e.target.value ? Number(e.target.value) : null }))} /></Field>
-        <Field label="Quantidade necessária"><Input type="number" step="0.01" value={form.quantidade_necessaria ?? 0} onChange={e => setForm(f => ({ ...f, quantidade_necessaria: Number(e.target.value) }))} /></Field>
-        <Field label="Quantidade em estoque"><Input type="number" step="0.01" value={form.quantidade_estoque ?? 0} onChange={e => setForm(f => ({ ...f, quantidade_estoque: Number(e.target.value) }))} /></Field>
+        <Field label="Quantidade em estoque"><Input type="number" step="0.01" value={Number(form.quantidade_estoque ?? 0)} onChange={e => setForm(f => ({ ...f, quantidade_estoque: Number(e.target.value) }))} /></Field>
+
+        <div className="col-span-2 mt-2 border border-border rounded-md p-3 bg-muted/30">
+          <div className="flex items-center justify-between mb-2">
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground font-mono">Materiais para execução — por plano de trabalho</Label>
+            <span className="text-[12px] font-mono">
+              Total: <span className="font-semibold tabular">{Math.round(total).toLocaleString("pt-BR")}</span>
+            </span>
+          </div>
+          <div className="grid grid-cols-5 gap-2">
+            {pCols.map((p, i) => (
+              <div key={p} className="flex flex-col gap-1">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono text-center">P{i + 1}</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  className="h-9 text-center font-mono text-[12px]"
+                  value={Number((form as Record<string, unknown>)[p] ?? 0)}
+                  onChange={e => setForm(f => ({ ...f, [p]: Number(e.target.value) }))}
+                />
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">A quantidade necessária total é calculada automaticamente como a soma de P1 a P10.</p>
+        </div>
+
         <DialogFooter className="col-span-2 mt-2">
           <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
           <Button type="submit" disabled={mut.isPending}>{mut.isPending ? "Salvando…" : material ? "Salvar" : "Criar"}</Button>
