@@ -1,72 +1,114 @@
 
+# Proposta Comercial — HIDROSISTEM (PDF)
 
-## Importar valores P1–P10 do Google Sheets para o sistema
+Vou gerar um PDF profissional de proposta comercial usando ReportLab, salvo em `/mnt/documents/proposta-hidrosistem.pdf`.
 
-Ler diretamente da planilha **"Consolidação de Frentes de Serviço — Gestão de Obras"**, aba **"Gestão de Materiais"**, e atualizar os campos P1–P10 dos materiais já cadastrados no banco, casando pelo `codigo` + `ur`.
+## Identidade visual
 
-### 1. Conectar o Google Sheets ao projeto
+- Paleta: Midnight Executive (navy `#1E2761` + ice blue `#CADCFC` + branco)
+- Tipografia: Helvetica Bold (títulos) + Helvetica (corpo)
+- Capa com faixa navy + título do projeto + dados das partes
+- Rodapé numerado em todas as páginas
 
-Verificar se já existe uma conexão Google Sheets linkada (o conector aparece em `<useful-context>`, então provavelmente sim). Se não, abrir o seletor para o usuário escolher/criar a conexão.
+## Estrutura do documento
 
-### 2. Ler a planilha via gateway
+**1. Capa**
+- Título: "Proposta Comercial — Sistema RedeGestor"
+- Subtítulo: **"Contrato HIDROSISTEM de Extensão|Substituição de Redes"**
+- Atendimento às UR's de Bolandeira, Cabula e Federação (mencionado no corpo do escopo, não no subtítulo)
+- Data, validade da proposta (30 dias)
+- Contratada (MEI — campos `[NOME]` e `[CNPJ]` para preencher)
+- Contratante: HIDROSISTEM
 
-- Spreadsheet ID: `12bVQlU4NUQR9JncZG4vIn-_SuTncrS3yLsN9hHFgAks`
-- Aba: `Gestão de Materiais`
-- Range: `'Gestão de Materiais'!A2:P` (pula o cabeçalho da linha 1; a linha 2 é o sub-cabeçalho UR/DN/Tipo/1..10/Total Geral, que será descartada)
+**2. Sumário Executivo**
+- Resumo do escopo, R$ 21.750 setup, planos mensais, vigência 12 meses
 
-Mapeamento das colunas:
-| Coluna | Campo |
-|---|---|
-| A | `codigo` |
-| B | `descricao` (referência, não sobrescreve) |
-| C | `ur` |
-| D | `dn` (referência) |
-| E | `tipo` (referência) |
-| F | `p1` |
-| G | `p2` |
-| H | `p3` |
-| I | `p4` |
-| J | `p5` |
-| K | `p6` |
-| L | `p7` |
-| M | `p8` |
-| N | `p9` |
-| O | `p10` |
-| P | Total Geral (ignorado — o trigger recalcula) |
+**3. Sobre o Sistema RedeGestor**
+- Módulos entregues: Obras, Diário de Obra, Alvarás, Mapa, Materiais (P1–P10), Encargos (lançamentos, medições, relatórios), Consolidado, Usuários/Permissões, Relatório Executivo PDF
+- Tecnologia: web responsivo, multi-usuário, multi-UR, banco em nuvem com backup automático
 
-Linhas vazias / linhas-cabeçalho repetidas (sem código numérico em A) são puladas.
+**4. Escopo do Projeto**
+- Customização visual (logo, cores HIDROSISTEM)
+- Cadastro inicial das 3 UR's (Bolandeira, Cabula, Federação)
+- Importação de dados iniciais (até 500 obras, 300 materiais)
+- Configuração de usuários e perfis
+- **Treinamento online** (4h síncronas via Meet/Zoom + material de apoio em PDF)
+- Hospedagem, domínio, backup automático
+- Suporte de implantação por 30 dias após go-live
 
-### 3. Importar via script de uma única execução (`code--exec`)
+**5. Investimento — Setup Inicial: R$ 21.750**
+- Implantação e configuração: R$ 9.500
+- Customização visual + ajustes: R$ 4.250
+- Importação e carga de dados: R$ 3.000
+- Treinamento online (4h + material): R$ 2.500
+- Suporte de implantação 30 dias: R$ 2.500
+- Pagamento: **50% na assinatura (R$ 10.875) + 50% no go-live (R$ 10.875)**
 
-Como é uma operação pontual de carga inicial, faço via script no sandbox que:
-1. Chama o gateway do Google Sheets para baixar os dados.
-2. Para cada linha válida, monta um `UPSERT` por `(codigo, ur)`:
-   - Se o material existir → atualiza apenas `p1..p10` (preserva `quantidade_estoque`, `descricao`, etc).
-   - Se não existir → insere novo registro com os dados da planilha (`codigo`, `descricao`, `ur`, `dn`, `tipo`, `p1..p10`, `quantidade_estoque = 0`).
-3. O trigger `materiais_recalc_total` (já criado) recalcula `quantidade_necessaria` automaticamente.
+**6. Planos Mensais (3 colunas — ancoragem)**
 
-Para suportar o upsert por `(codigo, ur)`, preciso adicionar uma **constraint UNIQUE (codigo, ur)** na tabela `materiais` (migration leve, antes da carga). Isso também previne duplicatas futuras e é coerente com a planilha (o mesmo código aparece uma vez por UR).
+| | **Essencial** | **Profissional** ⭐ | **Enterprise** |
+|---|---|---|---|
+| Mensal | R$ 1.800 | R$ 2.800 | R$ 4.500 |
+| Hospedagem + backup automático | ✓ | ✓ | ✓ |
+| Suporte | E-mail + WhatsApp (8h úteis, dias úteis) | E-mail + WhatsApp (8h úteis, dias úteis) | E-mail + WhatsApp (8h úteis, dias úteis) — SLA prioritário 4h |
+| Horas de evolução/mês | 3h | 10h | Ilimitado |
+| Correção de bugs | ✓ | ✓ | Prioritário |
+| Relatórios novos | À parte | 2/ano inclusos | Ilimitado |
+| Atendimento telefônico | — | — | ✓ |
 
-### 4. Relatório de importação
+**7. Customizações e Evoluções (fora do escopo)**
+- Hora avulsa: R$ 250/h
+- Pacote 10h: R$ 2.200 (validade 90 dias)
+- Pacote 20h: R$ 4.000
+- Relatório novo: R$ 800–1.500
+- Módulo novo: R$ 2.500–5.000
+- Integração externa: R$ 5.000–15.000
 
-Ao final, mostro no chat:
-- Quantas linhas foram lidas da planilha
-- Quantos materiais foram **atualizados** (já existiam)
-- Quantos foram **inseridos** (novos)
-- Quantas linhas foram **puladas** (sem código, sem UR ou inválidas)
-- Lista dos códigos que tinham diferenças relevantes (opcional, primeiros 20)
+**8. Vigência e Reajuste**
+- 12 meses com renovação automática
+- Reajuste anual pelo IPCA acumulado
+- Multa de 30% sobre saldo em caso de cancelamento antecipado
 
-### 5. O que NÃO muda
+**9. Cláusulas Importantes**
+- **Natureza da contratação**: Prestação de serviços de software (SaaS customizado). **Não há vínculo empregatício, societário, comercial ou de subordinação entre a CONTRATADA e a HIDROSISTEM**, tampouco com a empresa contratante da obra principal de extensão/substituição de redes
+- **Independência**: CONTRATADA autônoma, sem subordinação, sem habitualidade nem exclusividade
+- **Propriedade intelectual**: Código-fonte de propriedade exclusiva da CONTRATADA; HIDROSISTEM recebe licença de uso durante a vigência
+- **Dados**: Dados operacionais são da HIDROSISTEM; backup mensal exportável sob solicitação
+- **LGPD**: Tratamento conforme Lei 13.709/2018; CONTRATADA atua como operadora
+- **Confidencialidade**: Sigilo por 5 anos após término
+- **Responsabilidade limitada**: A 3 mensalidades em caso de falha do sistema
+- **Foro**: Salvador/BA
 
-- UI da tela de Materiais (já está pronta para mostrar P1–P10)
-- Estoque atual de cada material (preservado)
-- Código de aplicação — só roda script + 1 migration de constraint
+**10. SLA**
+- Disponibilidade: 99% mensal
+- Resposta: 8h úteis em dias úteis (Essencial/Profissional) / 4h prioritário (Enterprise)
+- Correção de bugs críticos: até 48h úteis
+- Backup: diário automático, retenção 30 dias
+- Manutenção programada: aviso de 48h
 
-### Pré-requisito de permissão
+**11. Próximos Passos**
+1. Aprovação da proposta
+2. Assinatura do contrato
+3. Pagamento da 1ª parcela (R$ 10.875)
+4. Kick-off + cronograma (15–20 dias úteis)
+5. Treinamento online
+6. Go-live + 2ª parcela
+7. Início da mensalidade no mês seguinte ao go-live
 
-Para o script rodar via `code--exec` com `psql`, preciso que você aprove **"Add data"** (insert/update) nas configurações do Lovable Cloud quando a permissão for solicitada — é o que permite escrever os P1–P10 de volta no banco. Alternativa: gero uma migration SQL grande com todos os UPDATEs (funciona, mas fica um arquivo enorme no histórico).
+**12. Aceite**
+- Linhas de assinatura (CONTRATADA / CONTRATANTE / 2 testemunhas)
+- Local, data e validade (30 dias)
 
-### Resultado esperado
+## Detalhes técnicos
 
-Ao abrir a tela **Gestão de Materiais**, todas as linhas da UML, UMB e UMF aparecem com os valores P1–P10 idênticos à planilha do Google Sheets, e a coluna **Total** mostra a soma correta automaticamente. A partir daí, novos lançamentos podem ser feitos manualmente pela interface.
+- Geração: ReportLab (Platypus + Canvas)
+- Saída: `/mnt/documents/proposta-hidrosistem.pdf`
+- QA visual obrigatório página por página
+- Versão `_v1`; ajustes geram `_v2`, `_v3`...
 
+## O que você preenche depois
+
+- `[NOME DA CONTRATADA / RAZÃO SOCIAL MEI]`
+- `[CNPJ DA CONTRATADA]`
+
+Posso prosseguir e gerar o PDF?
